@@ -67,6 +67,16 @@ function createFakeDocker({ runDelayMs = 0 } = {}) {
       const c = containers.get(name);
       if (c) c.logs += `${cmd.join(' ')}\n`;
     },
+    async stats(name) {
+      calls.push(['stats', name]);
+      const c = containers.get(name);
+      if (!c || !c.running) return null;
+      return { cpuPercent: 312.5, memBytes: 4 * 1024 ** 3, memLimitBytes: 28 * 1024 ** 3 };
+    },
+    async gpuStats() {
+      calls.push(['gpuStats']);
+      return { utilPercent: 97, memUsedBytes: 20 * 1024 ** 3, memTotalBytes: 32 * 1024 ** 3 };
+    },
     async listManaged() {
       calls.push(['listManaged']);
       return [...containers].filter(([, c]) => c.labels['vmu.booking']).map(([name, c]) => ({ name, bookingId: Number(c.labels['vmu.booking']), running: c.running }));

@@ -1,5 +1,6 @@
 // Gọi Docker CLI thật. Cùng giao diện với backend/tests/helpers/fake-docker.js.
 const { execFile } = require('node:child_process');
+const { parseDockerStats, parseNvidiaSmi } = require('../monitoring/parse');
 
 function docker(args) {
   return new Promise((resolve, reject) => {
@@ -42,6 +43,23 @@ function createDocker() {
     },
     async exec(name, cmd) {
       await docker(['exec', name, ...cmd]);
+    },
+    async stats(name) {
+      try {
+        const { stdout } = await docker(['stats', '--no-stream', '--format', '{{json .}}', name]);
+        return parseDockerStats(stdout.trim().split('\n')[0]);
+      } catch (e) {
+        if (isNoSuch(e)) return null;
+        throw e;
+      }
+    },
+    // Chỉ có 1 GPU (device=0) và tại mỗi thời điểm chỉ 1 phiên dùng nó, nên số liệu GPU là của phiên GPU đang chạy
+    async gpuStats() {
+      const stdout = await new Promise((resolve, reject) => {
+        execFile('nvidia-smi', ['--id=0', '--query-gpu=utilization.gpu,memory.used,memory.total', '--format=csv,noheader,nounits'],
+          (e, out) => (e ? reject(e) : resolve(out)));
+      });
+      return parseNvidiaSmi(stdout);
     },
     async listManaged() {
       const { stdout } = await docker(['ps', '-a', '--filter', 'label=vmu.booking', '--format', '{{.Names}}\t{{.Label "vmu.booking"}}\t{{.State}}']);

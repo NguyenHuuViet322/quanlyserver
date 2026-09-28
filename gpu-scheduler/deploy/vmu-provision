@@ -81,6 +81,9 @@ case "$action" in
     install -o "$1" -g "$1" -m 0600 "$tmp" "$home/.ssh/authorized_keys"
     rm -f "$tmp"
     ;;
+  report-quota)
+    xfs_quota -x -c 'report -p -b -N -n' "$DATA"
+    ;;
   write-sshd-users)
     # Nội dung từ stdin, sinh bởi backend/src/system/sshd.js. Chỉ chấp nhận đúng 3 dạng dòng.
     conf=/etc/ssh/sshd_config.d/40-vmu-users.conf

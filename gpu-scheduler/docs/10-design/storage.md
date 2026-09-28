@@ -31,8 +31,8 @@ Các lệnh trên cần root: backend gọi qua một helper nhỏ (`vmu-provisi
 
 ## Quota — REQ-ST-01, ST-02, ST-05
 
-- Đọc dung lượng: `xfs_quota -x -c 'report -p -b -N' /data`, định kỳ 5 phút, lưu vào bộ nhớ đệm cho `GET /me`.
-- Vượt `bsoft` → ghi `over_soft_since`, tạo notification `SOFT_QUOTA` với hạn `over_soft_since + 7 ngày`.
+- Đọc dung lượng: Scheduler gọi `vmu-provision report-quota` (`xfs_quota -x -c 'report -p -b -N -n' /data`, đơn vị KiB) mỗi 5 phút, lưu vào các cột `storage_*` của `users` cho `GET /me`.
+- Vượt `bsoft` lần đầu → ghi `over_soft_since`, tạo **một** notification `SOFT_QUOTA` ghi hạn `over_soft_since + 7 ngày` (giờ VN). Xuống dưới `bsoft` → xóa `over_soft_since`.
 - Sau grace period, XFS tự chặn ghi cho tới khi dung lượng xuống dưới `bsoft`.
 
 ## Xóa user — REQ-US-16

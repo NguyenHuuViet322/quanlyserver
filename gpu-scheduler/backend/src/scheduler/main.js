@@ -4,6 +4,10 @@ const { createDb } = require('../db');
 const { defaults } = require('../config');
 const { createDocker } = require('../container/docker');
 const { runTick, reconcile } = require('./tick');
+const { createLinuxSystem } = require('../system/linux');
+const { refreshStorage } = require('../storage/service');
+
+const STORAGE_REFRESH_MS = 5 * 60 * 1000; // docs/10-design/storage.md
 
 async function main() {
   const cfg = defaults;
@@ -27,6 +31,12 @@ async function main() {
   setInterval(() => {
     runTick(env).catch((e) => console.error('tick lỗi:', e));
   }, cfg.schedulerTickMs);
+
+  // REQ-ST-02, REQ-ST-05: đọc quota, cảnh báo vượt soft quota
+  const storageCtx = { db: env.db, system: createLinuxSystem(), clock: env.clock, cfg };
+  const refresh = () => refreshStorage(storageCtx).catch((e) => console.error('đọc quota lỗi:', e));
+  refresh();
+  setInterval(refresh, STORAGE_REFRESH_MS);
 }
 
 main().catch((e) => {

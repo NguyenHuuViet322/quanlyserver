@@ -5,6 +5,8 @@ const { ApiError, err } = require('./errors');
 const { createGoogleVerifier, checkClaims } = require('./auth/google');
 const users = require('./users/service');
 const bookings = require('./booking/service');
+const monitoring = require('./monitoring/service');
+const { storageOf } = require('./storage/service');
 
 const SID = 'sid';
 const NO_STORE = 'no-store';
@@ -13,10 +15,10 @@ const NO_STORE = 'no-store';
 const PUBLIC_ROUTES = new Set(['POST /api/auth/google']);
 const PENDING_ROUTES = new Set(['GET /api/me', 'POST /api/auth/logout']);
 
-async function buildApp({ db, system, clock = { now: () => new Date() }, google, config = {}, logger = false }) {
+async function buildApp({ db, system, docker, clock = { now: () => new Date() }, google, config = {}, logger = false }) {
   const cfg = loadConfig(config);
   const verifyIdToken = createGoogleVerifier(google);
-  const ctx = { db, system, clock, cfg };
+  const ctx = { db, system, docker, clock, cfg };
 
   // Không log body hay header Cookie (REQ-US-10)
   // coerceTypes: false — "use_gpu": "true" (chuỗi) phải bị từ chối, không tự đổi sang boolean
@@ -78,7 +80,10 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   // --- Tài khoản của tôi ---
   app.get('/api/me', async (req) => {
     const me = users.publicUser(req.user, cfg);
-    if (req.user.status === 'active') me.gpu_quota = await bookings.gpuQuotaOf(ctx, req.user);
+    if (req.user.status === 'active') {
+      me.gpu_quota = await bookings.gpuQuotaOf(ctx, req.user);
+      me.storage = storageOf(req.user, cfg);
+    }
     return me;
   });
 
@@ -133,6 +138,13 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   app.post('/api/bookings/:id/cancel', async (req) => bookings.cancelBooking(ctx, req.user, bookingId(req)));
   app.post('/api/bookings/:id/end', async (req, reply) =>
     reply.code(202).send(await bookings.endBooking(ctx, req.user, bookingId(req))));
+  // --- Giám sát — REQ-MN-01, REQ-MN-02 ---
+  app.get('/api/bookings/:id/logs', async (req, reply) => {
+    const text = await monitoring.bookingLogs(ctx, req.user, bookingId(req), req.query.tail);
+    reply.type('text/plain; charset=utf-8');
+    return text;
+  });
+  app.get('/api/bookings/:id/metrics', async (req) => monitoring.bookingMetrics(ctx, req.user, bookingId(req)));
   app.post('/api/bookings/:id/restart', async (req, reply) =>
     reply.code(202).send(await bookings.restartBooking(ctx, req.user, bookingId(req))));
 
@@ -143,6 +155,7 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   app.post('/api/admin/users/:id/approve', async (req) => ({ user: await users.approveUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/lock', async (req) => ({ user: await users.lockUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/unlock', async (req) => ({ user: await users.unlockUser(ctx, req.user.id, idParam(req)) }));
+  app.get('/api/admin/audit', async (req) => monitoring.listAudit(ctx, req.query));
   app.get('/api/admin/images', async () => bookings.listImages(ctx, { all: true }));
   app.put('/api/admin/images', {
     schema: { body: { type: 'object', required: ['images'], properties: { images: { type: 'array', items: { type: 'string', minLength: 1 } } } } },

@@ -2,16 +2,19 @@
 // Backend không chạy bằng root: mọi lệnh đi qua helper cố định `vmu-provision` được phép bằng sudo
 // (deploy/vmu-provision, docs/10-design/storage.md). Mật khẩu và SSH key truyền qua stdin, không qua argv.
 const { spawn } = require('node:child_process');
+const { parseQuotaReport } = require('../storage/xfs');
 
 const HELPER = process.env.VMU_PROVISION || '/usr/local/sbin/vmu-provision';
 
 function run(action, args = [], input) {
   return new Promise((resolve, reject) => {
     const child = spawn('sudo', ['-n', HELPER, action, ...args.map(String)], { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '';
     let stderr = '';
+    child.stdout.on('data', (d) => { stdout += d; });
     child.stderr.on('data', (d) => { stderr += d; });
     child.on('error', reject);
-    child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`vmu-provision ${action} lỗi ${code}: ${stderr.trim()}`))));
+    child.on('close', (code) => (code === 0 ? resolve(stdout) : reject(new Error(`vmu-provision ${action} lỗi ${code}: ${stderr.trim()}`))));
     child.stdin.end(input ?? '');
   });
 }
@@ -28,6 +31,7 @@ function createLinuxSystem() {
     lockUser: ({ username }) => run('lock-user', [username]),
     unlockUser: ({ username }) => run('unlock-user', [username]),
     setAuthorizedKeys: ({ username, keys }) => run('set-keys', [username], keys.map((k) => `${k}\n`).join('')),
+    readQuotas: async () => parseQuotaReport(await run('report-quota')),
     writeSshdUsers: ({ content }) => run('write-sshd-users', [], content),
     purgeUser: ({ username, uid }) => run('purge-user', [username, uid]),
   };

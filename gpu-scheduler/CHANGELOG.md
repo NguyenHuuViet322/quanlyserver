@@ -12,6 +12,8 @@
 - M2 Đặt lịch: ca theo giờ tròn giờ VN, kiểm tra thời gian theo thứ tự SPEC, giới hạn 2 phiên / 1 GPU theo từng mốc, hạn mức GPU theo tuần (Thứ Hai 00:00 VN), khóa advisory chống tranh chấp, hủy / kết thúc sớm / khởi động lại, lịch theo giờ, danh sách image, `gpu_quota` trong `GET /me`. Module `backend/src/time/` là nơi duy nhất quy đổi múi giờ.
 - M3 Scheduler: tick có khóa advisory, khởi chạy / cảnh báo 15 phút / dừng `docker stop -t 120` / lưu log, phát hiện container thoát và OOM, reconcile khi khởi động, `scheduler/main.js`. M4 (phần thuần): `buildRunArgs`, lớp gọi Docker CLI. Test system SC-T01/T04/T14 chạy với `VMU_SYSTEM=1` trên server.
 - Truy cập SSH: `deploy/vmu-enter` (ForceCommand, chép file chạy trên máy chủ không qua shell), `deploy/vmu-exec` (vào container của chính user), `deploy/sshd/50-vmu.conf`, `deploy/sudoers.d/vmu`, `PermitOpen` riêng từng user tự sinh khi duyệt/xóa user.
+- M5 Lưu trữ: đọc `xfs_quota` mỗi 5 phút, trường `storage` trong `GET /me`, cảnh báo vượt soft quota kèm hạn dọn dẹp.
+- M6 Giám sát: `GET /bookings/:id/logs`, `GET /bookings/:id/metrics` (`docker stats`, `nvidia-smi`), `GET /admin/audit`, dọn log quá 30 ngày trong lệnh `purge`.
 
 ### Thay đổi
 - Cổng container chỉ mở trên `127.0.0.1`, truy cập qua SSH tunnel.

@@ -15,7 +15,7 @@ function createClock(start = '2026-10-05T09:20:00+07:00') {
   };
 }
 
-async function createTestApp({ config = {}, now } = {}) {
+async function createTestApp({ config = {}, now, docker } = {}) {
   const db = createDb(DATABASE_URL);
   await resetSchema(db);
   const google = await createFakeGoogle();
@@ -24,6 +24,7 @@ async function createTestApp({ config = {}, now } = {}) {
   const app = await buildApp({
     db,
     system,
+    docker,
     clock,
     google: { clientId: google.clientId, jwks: google.jwks },
     config: { passwordEncKey: 'a'.repeat(64), ...config },

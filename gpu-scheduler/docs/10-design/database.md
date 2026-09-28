@@ -20,6 +20,10 @@ CREATE TABLE users (
   linux_uid       integer UNIQUE,                    -- NULL khi pending
   slot_index      smallint UNIQUE CHECK (slot_index BETWEEN 1 AND 30), -- REQ-US-09; NULL khi pending/deleted
   pending_password_enc bytea,                        -- REQ-US-10: mã hóa AES-GCM, xóa khi ack
+  storage_used_bytes bigint,                         -- REQ-ST-05: lần đọc xfs_quota gần nhất
+  storage_soft_bytes bigint,
+  storage_hard_bytes bigint,
+  storage_checked_at timestamptz,
   over_soft_since timestamptz,                       -- REQ-ST-02
   approved_at     timestamptz,
   deleted_at      timestamptz,                       -- REQ-US-16

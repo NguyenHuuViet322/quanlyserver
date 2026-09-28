@@ -16,7 +16,11 @@ CREATE TABLE users (
   linux_uid            integer UNIQUE,
   slot_index           smallint UNIQUE CHECK (slot_index >= 1),
   pending_password_enc bytea,
-  over_soft_since      timestamptz,
+  storage_used_bytes   bigint,        -- REQ-ST-05: lần đọc xfs_quota gần nhất
+  storage_soft_bytes   bigint,
+  storage_hard_bytes   bigint,
+  storage_checked_at   timestamptz,
+  over_soft_since      timestamptz,   -- REQ-ST-02
   approved_at          timestamptz,
   deleted_at           timestamptz,
   purge_after          timestamptz,

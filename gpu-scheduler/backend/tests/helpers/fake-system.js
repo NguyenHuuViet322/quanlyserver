@@ -9,6 +9,7 @@ function createFakeSystem() {
     quotas: new Map(), // uid -> { soft, hard, path }
     purged: [],
     sshdUsers: null, // nội dung 40-vmu-users.conf lần ghi gần nhất
+    usage: new Map(), // uid -> số byte đã dùng (giả lập xfs_quota)
   };
   const failures = new Set();
   const calls = [];
@@ -61,6 +62,8 @@ function createFakeSystem() {
     setAuthorizedKeys: step('setAuthorizedKeys', ({ username, keys }) => {
       state.users.get(username).keys = [...keys];
     }),
+    readQuotas: step('readQuotas', () =>
+      [...state.quotas].map(([uid, q]) => ({ projectId: uid, usedBytes: state.usage.get(uid) || 0, softBytes: q.soft, hardBytes: q.hard }))),
     writeSshdUsers: step('writeSshdUsers', ({ content }) => {
       state.sshdUsers = content;
     }),

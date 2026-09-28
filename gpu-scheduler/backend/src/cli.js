@@ -7,6 +7,7 @@ const { createDb, migrate } = require('./db');
 const { loadConfig } = require('./config');
 const { createLinuxSystem } = require('./system/linux');
 const { purgeDeletedUsers } = require('./users/service');
+const { purgeOldLogs } = require('./monitoring/service');
 
 async function main() {
   const [cmd, arg] = process.argv.slice(2);
@@ -25,6 +26,8 @@ async function main() {
       const cfg = loadConfig({ passwordEncKey: process.env.PASSWORD_ENC_KEY });
       const n = await purgeDeletedUsers({ db, system: createLinuxSystem(), clock: { now: () => new Date() }, cfg });
       console.log(`Đã xóa hẳn ${n} user`);
+      const logs = await purgeOldLogs({ db, clock: { now: () => new Date() }, cfg });
+      console.log(`Đã xóa ${logs} file log quá hạn`); // REQ-MN-02
     } else {
       console.error('Lệnh: migrate | promote-admin <email> | purge');
       process.exitCode = 2;

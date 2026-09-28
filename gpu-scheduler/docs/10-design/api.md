@@ -70,7 +70,7 @@ Tài khoản `pending` vẫn đăng nhập được (để thấy màn hình ch�
   "username": "vietnh", "status": "active", "role": "user", "uid": 2001,
   "ports": { "from": 10000, "to": 10099 },
   "storage": { "used_bytes": 12884901888, "soft_bytes": 85899345920, "hard_bytes": 107374182400,
-               "over_soft_since": null, "grace_deadline": null },
+               "over_soft_since": null, "grace_deadline": null, "checked_at": "2026-10-05T09:15:00+07:00" },
   "gpu_quota": { "week_start": "2026-09-28T00:00:00+07:00", "limit_hours": 10, "used_hours": 3.5, "remaining_hours": 6.5 } }
 ```
 
@@ -122,8 +122,9 @@ Ba API trên kiểm tra theo thứ tự: `404 NOT_FOUND` → `403 FORBIDDEN` (kh
 
 ## Giám sát — REQ-MN-01..04
 
-- `GET /bookings/:id/metrics` → `{ "cpu_percent": 312.5, "mem_bytes": …, "mem_limit_bytes": …, "gpu": { "util_percent": 97, "mem_used_bytes": … } | null, "sampled_at": "…" }`
-- `GET /bookings/:id/logs?tail=1000` → `text/plain`. Xem được trong `LOG_RETENTION` sau khi ca kết thúc.
+- `GET /bookings/:id/metrics` → `{ "cpu_percent": 312.5, "mem_bytes": …, "mem_limit_bytes": …, "gpu": { "util_percent": 97, "mem_used_bytes": …, "mem_total_bytes": … } | null, "sampled_at": "…" }`. Đọc trực tiếp khi gọi (`docker stats`, `nvidia-smi`); `gpu` chỉ có với ca `use_gpu`. Ca không `running` → `409 INVALID_STATE`.
+- `GET /bookings/:id/logs?tail=1000` → `text/plain`: log đã lưu của các lần chạy trước + log trực tiếp nếu container còn. Xem được trong `LOG_RETENTION` sau khi ca kết thúc; không có log → `404 NOT_FOUND`.
+- Cả hai: chỉ chủ ca hoặc admin (`403 FORBIDDEN`).
 - `GET /notifications` → danh sách thông báo (cảnh báo hết ca, lỗi khởi chạy, OOM, soft quota).
 
 ## Admin — REQ-US-07, REQ-US-08, REQ-US-14..16, REQ-MN-03
@@ -142,7 +143,7 @@ Tài khoản bị khóa hoặc đã xóa: phiên cũ vẫn tồn tại nhưng m�
 | `POST /admin/users/:id/unlock` | `200`, user `active` | `409 INVALID_STATE` |
 | `DELETE /admin/users/:id` | `200`, user `deleted` | |
 | `GET /admin/images` · `PUT /admin/images { "images": ["…"] }` | danh sách image cho phép; image không có trong danh sách PUT bị tắt (không xóa) | |
-| `GET /admin/audit?from=…&to=…` | audit log | |
+| `GET /admin/audit?from=…&to=…` | 1000 dòng mới nhất: `{ id, actor (username hoặc "system"), action, target, details, created_at }` | |
 
 ## Gate Bước 2
 

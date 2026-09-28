@@ -2,6 +2,7 @@
 const { buildApp } = require('./app');
 const { createDb } = require('./db');
 const { createLinuxSystem } = require('./system/linux');
+const { createDocker } = require('./container/docker');
 
 function required(name) {
   const v = process.env[name];
@@ -14,6 +15,7 @@ async function main() {
   const app = await buildApp({
     db,
     system: createLinuxSystem(),
+    docker: createDocker(),
     google: { clientId: required('GOOGLE_CLIENT_ID') },
     config: { passwordEncKey: required('PASSWORD_ENC_KEY') },
     logger: { level: process.env.LOG_LEVEL || 'info' },
