@@ -13,7 +13,7 @@
     "trace": "node tools/trace.js --write",
     "trace:check": "node tools/trace.js --check",
     "sync-ticks": "node tools/sync-ticks.js reports",
-    "db:test": "docker run -d --name vmu-pg-test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=vmu_test -p 55432:5432 postgres:16 -c timezone=UTC",
+    "db:test": "node tools/db-test.js",
     "test:unit:tz": "node tools/test-unit-tz.js",
     "dev": "node tools/dev-server.js"
   },

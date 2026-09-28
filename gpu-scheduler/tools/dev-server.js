@@ -140,6 +140,13 @@ async function main() {
 }
 
 main().catch((e) => {
-  console.error(e);
+  if (e.code === 'EADDRINUSE') {
+    console.error(`Cổng ${PORT} đang bận: có thể "npm run dev" đang chạy ở cửa sổ khác. Hãy tắt nó, hoặc chạy với DEV_PORT=4175.`);
+  } else if (['ECONNREFUSED', 'ECONNRESET', '3D000', '57P03'].includes(e.code)) {
+    // 3D000: chưa có CSDL vmu_dev; 57P03: PostgreSQL đang khởi động
+    console.error('Không kết nối được CSDL vmu_dev. Hãy chạy "npm run db:test" trước (lệnh này chờ PostgreSQL sẵn sàng).');
+  } else {
+    console.error(e);
+  }
   process.exit(1);
 });

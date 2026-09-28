@@ -38,7 +38,7 @@ npm run trace:check        # Gate Bước 2–3 (tạm thời chưa có CI: ch�
 npm run trace              # sinh lại docs/traceability.md
 npm run test:unit
 npm run test:unit:tz        # unit test với 3 múi giờ (UTC, VN, New York) — chạy trước khi tick
-npm run db:test            # khởi động PostgreSQL test trong Docker (cổng 55432)
+npm run db:test            # khởi động PostgreSQL trong Docker (cổng 55432); chạy lại bao nhiêu lần cũng được
 npm run test:integration   # cần PostgreSQL, DATABASE_URL
 npm run test:system        # trên server có GPU
 npm run test:e2e           # Playwright; Windows dùng Edge có sẵn, Linux cần `npx playwright install chromium`
