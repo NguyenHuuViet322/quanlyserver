@@ -1,0 +1,44 @@
+#!/bin/bash
+# ForceCommand của sshd cho nhóm vmu-users — docs/10-design/ssh.md, REQ-CT-08, REQ-CT-09.
+# Chạy bằng quyền của user vừa SSH vào.
+#   - Lệnh chép file (sftp, scp -t/-f, rsync --server): chạy trên máy chủ trong /data/users/<username>
+#   - Còn lại: sudo vmu-exec để vào container của chính user
+# Lệnh gốc KHÔNG BAO GIỜ được đưa vào shell trên máy chủ: chỉ tách theo khoảng trắng thành tham số.
+# Cài: install -o root -g root -m 0755 deploy/vmu-enter /usr/local/bin/vmu-enter
+set -u
+
+me=$(/usr/bin/id -un)
+# Chỉ để test (sshd không cho user đặt biến môi trường: PermitUserEnvironment no, không có AcceptEnv)
+PATH=${VMU_ENTER_PATH:-/usr/local/bin:/usr/bin:/bin}
+DATA_ROOT=${VMU_DATA_ROOT:-/data}
+SFTP_SERVER=${VMU_SFTP_SERVER:-/usr/lib/openssh/sftp-server}
+export PATH
+
+home="$DATA_ROOT/users/$me"
+cmd="${SSH_ORIGINAL_COMMAND:-}"
+read -r -a argv <<< "$cmd"   # tách từ; không mở rộng glob, biến, $() hay dấu nháy
+
+is_file_transfer() {
+  case "${argv[0]:-}" in
+    internal-sftp | */sftp-server | sftp-server) return 0 ;;
+    rsync) [[ "${argv[1]:-}" == "--server" ]] && return 0 ;;
+    scp)
+      local a
+      for a in "${argv[@]:1}"; do
+        [[ "$a" == -* && "$a" != --* && ( "$a" == *t* || "$a" == *f* ) ]] && return 0
+      done
+      ;;
+  esac
+  return 1
+}
+
+if is_file_transfer; then
+  cd "$home" || { echo "Không truy cập được $home" >&2; exit 1; }
+  case "${argv[0]}" in
+    rsync) exec rsync "${argv[@]:1}" ;;
+    scp) exec scp "${argv[@]:1}" ;;
+    *) exec "$SFTP_SERVER" -d "$home" ;;
+  esac
+fi
+
+exec sudo -n /usr/local/sbin/vmu-exec -- "$cmd"

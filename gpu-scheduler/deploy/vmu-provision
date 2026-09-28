@@ -33,7 +33,7 @@ action=${1:-}; shift || true
 case "$action" in
   create-user)
     check_user "$1"; check_uid "$2"
-    useradd -u "$2" -U -m -s /bin/bash "$1"
+    useradd -u "$2" -U -G vmu-users -m -s /bin/bash "$1"
     ;;
   delete-user)
     check_user "$1"; check_managed "$1"
@@ -80,6 +80,22 @@ case "$action" in
     grep -E '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com) [A-Za-z0-9+/]+=*( .*)?$' > "$tmp" || true
     install -o "$1" -g "$1" -m 0600 "$tmp" "$home/.ssh/authorized_keys"
     rm -f "$tmp"
+    ;;
+  write-sshd-users)
+    # Nội dung từ stdin, sinh bởi backend/src/system/sshd.js. Chỉ chấp nhận đúng 3 dạng dòng.
+    conf=/etc/ssh/sshd_config.d/40-vmu-users.conf
+    tmp=$(mktemp)
+    cat > "$tmp"
+    if grep -vqE '^(#.*|Match User [a-z][a-z0-9._-]{0,31}|    PermitOpen( (localhost|127\.0\.0\.1):[0-9]{1,5})+)?$' "$tmp"; then
+      rm -f "$tmp"; die "nội dung cấu hình sshd không hợp lệ"
+    fi
+    [[ -f "$conf" ]] && cp -p "$conf" "$conf.bak"
+    install -o root -g root -m 0644 "$tmp" "$conf"; rm -f "$tmp"
+    if ! sshd -t; then
+      if [[ -f "$conf.bak" ]]; then mv "$conf.bak" "$conf"; else rm -f "$conf"; fi
+      die "sshd -t báo lỗi, đã khôi phục cấu hình cũ"
+    fi
+    systemctl reload ssh 2>/dev/null || systemctl reload sshd
     ;;
   purge-user)
     check_user "$1"; check_uid "$2"

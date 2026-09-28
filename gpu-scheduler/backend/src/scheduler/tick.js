@@ -119,8 +119,10 @@ async function warnEnding(e, now) {
     const end = DateTime.fromJSDate(b.end_at, { zone: e.cfg.timezone });
     const msg = `Ca của bạn kết thúc lúc ${end.toFormat('HH:mm')} (GMT${end.toFormat('Z')}). Hãy lưu checkpoint.`;
     await notify(e.db, b.user_id, b.id, 'END_WARNING', msg);
+    // In ra mọi terminal SSH đang mở trong container và vào log — docs/10-design/ssh.md
+    const script = `MSG='[VMU] ${msg}'; for t in /dev/pts/[0-9]*; do [ -w "$t" ] && printf '\n%s\n' "$MSG" > "$t"; done; echo "$MSG" > /proc/1/fd/1`;
     try {
-      await e.docker.exec(containerName(b.id), ['sh', '-c', `echo "[VMU] ${msg}" > /proc/1/fd/1`]);
+      await e.docker.exec(containerName(b.id), ['sh', '-c', script]);
     } catch { /* image không có sh: vẫn còn thông báo trên Dashboard */ }
   }
 }

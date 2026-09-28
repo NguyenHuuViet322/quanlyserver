@@ -52,7 +52,7 @@ describe('M3 — Scheduler', () => {
     return b;
   }
 
-  test('SC-T02 còn 15 phút → đúng 1 cảnh báo END_WARNING dù chạy thêm 5 tick', async () => {
+  test('SC-T02 còn 15 phút → đúng 1 cảnh báo END_WARNING và 1 lần in ra terminal /dev/pts/* + log, dù chạy thêm 5 tick', async () => {
     const b = await started();
     t.clock.set(vn('2026-10-05T10:44:00'));
     await tick();
@@ -65,7 +65,12 @@ describe('M3 — Scheduler', () => {
     const w = await notes('END_WARNING');
     assert.equal(w.length, 1);
     assert.equal(w[0].booking_id, b.id);
-    assert.equal(docker.calls.filter((c) => c[0] === 'exec').length, 1);
+    const execs = docker.calls.filter((c) => c[0] === 'exec');
+    assert.equal(execs.length, 1);
+    const script = execs[0][2].join(' ');
+    assert.ok(script.includes('/dev/pts/'), script);
+    assert.ok(script.includes('/proc/1/fd/1'), script);
+    assert.ok(script.includes('11:00 (GMT+7)'), script);
   });
 
   test('SC-T03 hết giờ → docker stop -t 120, lưu log, docker rm, completed', async () => {

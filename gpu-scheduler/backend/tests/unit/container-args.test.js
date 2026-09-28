@@ -40,11 +40,11 @@ test('CT-T09 không có --privileged, --cap-add, docker.sock, --network=host, --
   }
 });
 
-test('CT-T10 cổng ngoài dải → ném lỗi, không sinh lệnh', () => {
+test('CT-T10 cổng ngoài dải → ném lỗi; cổng trong dải → -p 127.0.0.1:p:p', () => {
   assert.throws(() => buildRunArgs(base({ booking: { id: 42, use_gpu: false, image: IMAGE, ports: [10100] } }), cfg), /cổng/i);
   assert.throws(() => buildRunArgs(base({ booking: { id: 42, use_gpu: false, image: IMAGE, ports: [22] } }), cfg), /cổng/i);
   const ok = buildRunArgs(base(), cfg);
-  assert.deepEqual(ok.filter((_, i) => ok[i - 1] === '-p'), ['10001:10001', '10006:10006']);
+  assert.deepEqual(ok.filter((_, i) => ok[i - 1] === '-p'), ['127.0.0.1:10001:10001', '127.0.0.1:10006:10006']);
 });
 
 test('CT-T11 image ngoài danh sách → ném lỗi, không sinh lệnh', () => {

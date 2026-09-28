@@ -8,6 +8,7 @@ function createFakeSystem() {
     homes: new Map(), // username -> uid
     quotas: new Map(), // uid -> { soft, hard, path }
     purged: [],
+    sshdUsers: null, // nội dung 40-vmu-users.conf lần ghi gần nhất
   };
   const failures = new Set();
   const calls = [];
@@ -59,6 +60,9 @@ function createFakeSystem() {
     }),
     setAuthorizedKeys: step('setAuthorizedKeys', ({ username, keys }) => {
       state.users.get(username).keys = [...keys];
+    }),
+    writeSshdUsers: step('writeSshdUsers', ({ content }) => {
+      state.sshdUsers = content;
     }),
     purgeUser: step('purgeUser', ({ username, uid }) => {
       state.users.delete(username);

@@ -11,6 +11,9 @@
 - M1 Người dùng & xác thực: đăng nhập Google (kiểm token ở backend, chỉ `@vimaru.edu.vn`), phiên cookie, duyệt tài khoản kèm cấp phát có hoàn tác, dải cổng, mật khẩu SSH hiển thị một lần (mã hóa AES-GCM khi chờ), SSH key, khóa/xóa/purge user, lệnh CLI `migrate`/`promote-admin`/`purge`, helper `deploy/vmu-provision`.
 - M2 Đặt lịch: ca theo giờ tròn giờ VN, kiểm tra thời gian theo thứ tự SPEC, giới hạn 2 phiên / 1 GPU theo từng mốc, hạn mức GPU theo tuần (Thứ Hai 00:00 VN), khóa advisory chống tranh chấp, hủy / kết thúc sớm / khởi động lại, lịch theo giờ, danh sách image, `gpu_quota` trong `GET /me`. Module `backend/src/time/` là nơi duy nhất quy đổi múi giờ.
 - M3 Scheduler: tick có khóa advisory, khởi chạy / cảnh báo 15 phút / dừng `docker stop -t 120` / lưu log, phát hiện container thoát và OOM, reconcile khi khởi động, `scheduler/main.js`. M4 (phần thuần): `buildRunArgs`, lớp gọi Docker CLI. Test system SC-T01/T04/T14 chạy với `VMU_SYSTEM=1` trên server.
+- Truy cập SSH: `deploy/vmu-enter` (ForceCommand, chép file chạy trên máy chủ không qua shell), `deploy/vmu-exec` (vào container của chính user), `deploy/sshd/50-vmu.conf`, `deploy/sudoers.d/vmu`, `PermitOpen` riêng từng user tự sinh khi duyệt/xóa user.
 
 ### Thay đổi
+- Cổng container chỉ mở trên `127.0.0.1`, truy cập qua SSH tunnel.
+- Cảnh báo hết ca in ra terminal SSH trong container.
 - `SESSION_TTL` = 30 ngày.

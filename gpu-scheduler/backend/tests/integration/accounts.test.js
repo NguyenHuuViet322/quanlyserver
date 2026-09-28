@@ -121,6 +121,19 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
     assert.equal(u.status, 'active');
   });
 
+  test('US-T31 duyệt user → ghi lại cấu hình sshd có Match User; xóa user → không còn', async () => {
+    const u = await activeUser('vietnh@vimaru.edu.vn');
+    assert.match(t.system.state.sshdUsers || '', /^Match User vietnh$/m);
+    assert.match(t.system.state.sshdUsers, /PermitOpen localhost:10000 127.0.0.1:10000 /);
+    const other = await activeUser('hoanglm@vimaru.edu.vn');
+    assert.match(t.system.state.sshdUsers, /^Match User hoanglm$/m);
+    const res = await t.req('DELETE', `/api/admin/users/${u.id}`, admin);
+    assert.equal(res.statusCode, 200);
+    assert.doesNotMatch(t.system.state.sshdUsers, /^Match User vietnh$/m);
+    assert.match(t.system.state.sshdUsers, /^Match User hoanglm$/m);
+    assert.ok(other);
+  });
+
   test('US-T24 user thường gọi GET /admin/users → 403 FORBIDDEN', async () => {
     await activeUser('thuong@vimaru.edu.vn');
     const { cookie } = await t.login('thuong@vimaru.edu.vn');

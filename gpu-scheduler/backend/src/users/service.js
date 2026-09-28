@@ -6,6 +6,7 @@ const { deriveUsername, usernameProblem } = require('./username');
 const { generatePassword, encryptPassword, decryptPassword } = require('./password');
 const { portRange } = require('./ports');
 const { parseSshKey } = require('./ssh-key');
+const { renderSshdUsers } = require('../system/sshd');
 
 const ADMIN_LOCK = 1001; // khóa advisory cho các thao tác cấp phát tài khoản
 
@@ -62,6 +63,12 @@ async function userFromSession(ctx, token) {
 
 async function deleteSession(ctx, token) {
   if (token) await ctx.db.query('DELETE FROM sessions WHERE id_hash = $1', [hashToken(token)]);
+}
+
+// Ghi lại cấu hình PermitOpen theo CSDL hiện tại (trong transaction đang mở) — REQ-CT-10
+async function syncSshd(ctx, q) {
+  const { rows } = await q.query(`SELECT username, status, slot_index FROM users ORDER BY slot_index NULLS LAST, id`);
+  await ctx.system.writeSshdUsers({ content: renderSshdUsers(rows, ctx.cfg) });
 }
 
 // --- Duyệt & cấp phát — REQ-US-05, 07, 08, 09 ---
@@ -135,6 +142,7 @@ async function approveUser(ctx, actorId, userId) {
         [userId, uid, slot, encryptPassword(password, cfg.passwordEncKey), ctx.clock.now()],
       );
       await audit(q, actorId, 'user.approve', `user:${userId}`, { username, uid, slot });
+      await syncSshd(ctx, q);
       return publicUser(updated.rows[0], cfg);
     } catch (e) {
       for (const revert of undo.reverse()) {
@@ -193,6 +201,7 @@ async function deleteUser(ctx, actorId, userId) {
     );
     await stopBookingsOf(q, userId);
     await audit(q, actorId, 'user.delete', `user:${userId}`);
+    await syncSshd(ctx, q);
     return publicUser(updated.rows[0], ctx.cfg);
   });
 }

@@ -31,7 +31,8 @@ function buildRunArgs({ booking, user, ports, allowedImages, cpuThreads }, cfg) 
     '-v', `${cfg.dataRoot}/shared:/shared:ro`,
     '-w', '/workspace',
     '-e', `TZ=${cfg.timezone}`,
-    ...(booking.ports || []).flatMap((p) => ['-p', `${p}:${p}`]),
+    // Chỉ mở trên 127.0.0.1: tới được qua SSH tunnel, không lộ ra mạng — REQ-CT-05, REQ-CT-10
+    ...(booking.ports || []).flatMap((p) => ['-p', `127.0.0.1:${p}:${p}`]),
     booking.image,
     'sleep', 'infinity',
   ];

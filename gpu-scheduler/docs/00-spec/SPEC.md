@@ -308,4 +308,4 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 - [x] Mọi yêu cầu có ID duy nhất và tiêu chí chấp nhận đo được
 - [x] Các tham số được liệt kê trong bảng cấu hình, không rải rác
 - [x] Đã có người review và đồng ý toàn bộ spec (Q1–Q9 đã chốt 2026-09-28)
-- [ ] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review
+- [x] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review

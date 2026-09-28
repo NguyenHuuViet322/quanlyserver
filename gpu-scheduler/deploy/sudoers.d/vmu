@@ -1,0 +1,6 @@
+# /etc/sudoers.d/vmu (mode 0440) — kiểm bằng: visudo -cf deploy/sudoers.d/vmu
+# Backend/Scheduler (user vmu): các thao tác cần root, qua helper cố định
+vmu ALL=(root) NOPASSWD: /usr/local/sbin/vmu-provision
+# Người dùng: chỉ được vào container của chính mình
+%vmu-users ALL=(root) NOPASSWD: /usr/local/sbin/vmu-exec
+Defaults!/usr/local/sbin/vmu-exec env_reset, !lecture

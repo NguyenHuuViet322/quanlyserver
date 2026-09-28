@@ -1,0 +1,35 @@
+#!/bin/bash
+# Vào container đang chạy của chính user — docs/10-design/ssh.md, REQ-CT-08.
+# Chạy bằng root qua sudo, gọi từ vmu-enter:  sudo -n /usr/local/sbin/vmu-exec -- "<lệnh gốc>"
+# User lấy từ SUDO_USER (sudo đặt, user không sửa được); KHÔNG nhận tên user/container từ tham số.
+# Cài: install -o root -g root -m 0755 deploy/vmu-exec /usr/local/sbin/vmu-exec
+# sudoers (deploy/sudoers.d/vmu): %vmu-users ALL=(root) NOPASSWD: /usr/local/sbin/vmu-exec
+set -euo pipefail
+
+DASHBOARD_URL=${DASHBOARD_URL:-$(cat /etc/vmu/dashboard-url 2>/dev/null || echo "Dashboard")}
+UID_MIN=2001
+
+user=${SUDO_USER:-}
+[[ "$user" =~ ^[a-z][a-z0-9._-]{0,31}$ ]] || { echo "vmu-exec: không xác định được user" >&2; exit 2; }
+uid=$(id -u "$user")
+(( uid >= UID_MIN )) || { echo "vmu-exec: từ chối user hệ thống" >&2; exit 2; }
+
+[[ "${1:-}" == "--" ]] && shift
+cmd="${1:-}"
+
+container=$(docker ps --filter "label=vmu.user=$user" --filter status=running --format '{{.Names}}' | head -n 1)
+if [[ -z "$container" ]]; then
+  echo "Bạn chưa có ca đang chạy. Hãy đặt ca hoặc xem lịch tại $DASHBOARD_URL"
+  echo "Chép file (sftp/scp/rsync) vẫn dùng được khi không có ca."
+  exit 1
+fi
+
+opts=(-i -u "$uid:$uid" -w /workspace -e HOME=/workspace -e "TERM=${TERM:-xterm}")
+[[ -t 0 ]] && opts+=(-t)
+
+if [[ -z "$cmd" ]]; then
+  # Shell tương tác trong container (ưu tiên bash)
+  exec docker exec "${opts[@]}" "$container" sh -c 'if command -v bash >/dev/null 2>&1; then exec bash -l; else exec sh -l; fi'
+fi
+# Lệnh được chạy BÊN TRONG container (đã bị giới hạn), không phải trên máy chủ
+exec docker exec "${opts[@]}" "$container" sh -c "$cmd"

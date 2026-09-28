@@ -28,6 +28,7 @@ function createLinuxSystem() {
     lockUser: ({ username }) => run('lock-user', [username]),
     unlockUser: ({ username }) => run('unlock-user', [username]),
     setAuthorizedKeys: ({ username, keys }) => run('set-keys', [username], keys.map((k) => `${k}\n`).join('')),
+    writeSshdUsers: ({ content }) => run('write-sshd-users', [], content),
     purgeUser: ({ username, uid }) => run('purge-user', [username, uid]),
   };
 }
