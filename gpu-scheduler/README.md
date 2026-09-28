@@ -4,6 +4,7 @@ Hệ thống đặt lịch dùng GPU RTX 5090 cho ~30 người dùng tại Đạ
 
 - Kế hoạch: [`../ke-hoach-server-vmu.md`](../ke-hoach-server-vmu.md)
 - Quy trình phát triển: [`../quy-trinh-phat-trien.md`](../quy-trinh-phat-trien.md)
+- **Tổng quan mục đích và luồng hệ thống: [docs/tong-quan.md](docs/tong-quan.md)**
 
 ## Trạng thái
 
