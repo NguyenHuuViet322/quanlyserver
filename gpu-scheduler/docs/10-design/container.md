@@ -21,7 +21,7 @@ docker run -d \
   -v /data/shared:/shared:ro \
   -w /workspace \
   -e TZ=Asia/Ho_Chi_Minh \
-  -p 10001:10001 -p 10006:10006 \
+  -p 127.0.0.1:10001:10001 -p 127.0.0.1:10006:10006 \
   vmu/pytorch:2.8-cuda12.8 \
   sleep infinity
 ```
@@ -34,7 +34,7 @@ docker run -d \
 | `--gpus device=0` | **chỉ khi `use_gpu = true`** | REQ-CT-01 |
 | `--user` | UID:GID của user, không bao giờ `0` | REQ-CT-04 |
 | `-v` | chỉ đúng 2 mount trên; không có `docker.sock` | REQ-CT-03, CT-04 |
-| `-p` | mỗi cổng `p` → `p:p`, `p` thuộc dải của user | REQ-CT-05 |
+| `-p` | mỗi cổng `p` → `127.0.0.1:p:p`, `p` thuộc dải của user; chỉ tới được qua SSH tunnel ([ssh.md](ssh.md)) | REQ-CT-05, REQ-CT-10 |
 | image | thuộc `ALLOWED_IMAGES` | REQ-CT-06 |
 | `--storage-opt size` | `CONTAINER_WRITABLE_LAYER` | REQ-ST-03 |
 | `-e TZ` | `CFG.TIMEZONE`; image phải có `tzdata` | REQ-SC-08, REQ-DP-06 |

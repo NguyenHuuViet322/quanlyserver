@@ -175,7 +175,7 @@ Request MUST có `use_gpu` (boolean, không mặc định) và `image` thuộc `
 Ca `scheduled` đến `start` MUST có container ở trạng thái `running` trong ≤ `CFG.SCHEDULER_TICK` (chu trình `scheduled → starting → running`).
 
 ### REQ-SC-02 — Cảnh báo hết ca
-Tại `end − END_WARNING`, user MUST nhận đúng một cảnh báo (thông báo trên Dashboard và thông điệp ghi vào terminal/log container).
+Tại `end − END_WARNING`, user MUST nhận đúng một cảnh báo: thông báo trên Dashboard, thông điệp in ra **mọi terminal SSH đang mở trong container** (`/dev/pts/*`), và ghi vào log container.
 
 ### REQ-SC-03 — Dừng khi hết ca
 Tại `end`, Scheduler MUST chạy `docker stop -t STOP_TIMEOUT` (`stopping`), sau khi container dừng thì xóa container, giải phóng GPU/CPU/RAM, lưu log, chuyển sang `completed`.
@@ -212,13 +212,27 @@ Container MUST chỉ mount `/data/users/<username>` → `/workspace` (rw) và `/
 Container MUST chạy với UID:GID của user, MUST NOT `--privileged`, MUST NOT mount `docker.sock`, MUST dùng `--security-opt no-new-privileges`.
 
 ### REQ-CT-05 — Cổng
-Container MUST chỉ publish các cổng trong dải của user (REQ-US-09, REQ-BK-10).
+Container MUST chỉ publish các cổng trong dải của user (REQ-US-09, REQ-BK-10), và chỉ trên `127.0.0.1` (`-p 127.0.0.1:p:p`): cổng không mở ra mạng, chỉ tới được qua SSH tunnel (REQ-CT-10).
 
 ### REQ-CT-06 — Image
 Container MUST chỉ được tạo từ image thuộc `CFG.ALLOWED_IMAGES`.
 
 ### REQ-CT-07 — Chạy song song
 Một phiên GPU và một phiên không GPU MUST chạy song song được, mỗi phiên giữ đúng giới hạn của mình.
+
+### REQ-CT-08 — Vào container bằng SSH
+- User SSH bằng `<username>@<server>` (username theo REQ-US-05, mật khẩu theo REQ-US-10 hoặc SSH key theo REQ-US-13).
+- User MUST NOT có shell trên máy chủ. Mọi phiên SSH của nhóm `vmu-users` MUST đi qua `ForceCommand vmu-enter`.
+- Có ca đang chạy (container `running` mang label `vmu.user=<username>`): phiên SSH MUST vào đúng container đó, chạy với UID của user, thư mục `/workspace`, `HOME=/workspace`. Không có lệnh → login shell có TTY; có lệnh (vd `ssh user@server nvidia-smi`, VS Code Remote-SSH) → lệnh chạy trong container.
+- User MUST NOT vào được container của người khác.
+- Không có ca đang chạy: MUST in thông báo tiếng Việt "Bạn chưa có ca đang chạy…" kèm địa chỉ Dashboard, thoát với mã khác 0, không mở shell nào.
+- sshd MUST tắt X11 forwarding, agent forwarding, `PermitTunnel`; chỉ cho TCP forwarding chiều local (REQ-CT-10).
+
+### REQ-CT-09 — Chép file mọi lúc
+Chép file bằng SFTP (kể cả `scp` bản mới), `scp -t/-f` bản cũ và `rsync` MUST hoạt động **cả khi không có ca**. Các lệnh này MUST chạy trên máy chủ với quyền của user, bắt đầu tại `/data/users/<username>` (chính là `/workspace` trong container). Lệnh được tách thành tham số, MUST NOT đi qua shell (không chèn được lệnh khác). User MUST NOT đọc hoặc ghi được thư mục của user khác (thư mục `0700`).
+
+### REQ-CT-10 — Cổng chỉ qua SSH tunnel
+User MUST dùng được `ssh -L <p>:localhost:<p> <username>@<server>` với mọi cổng `p` trong dải của mình. sshd MUST từ chối forward tới cổng ngoài dải của user (`PermitOpen` riêng cho từng user). Từ máy khác trong mạng, `<server>:<p>` MUST không kết nối được.
 
 ## 7. M5 — Lưu trữ (`ST`)
 
@@ -285,9 +299,13 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 | Q7 | CSDL | PostgreSQL (khóa `pg_advisory_xact_lock` cho REQ-BK-06) | ✅ Đã chốt 2026-09-28 |
 | Q8 | Có cho đặt ca qua nửa đêm không | Có (vd 22:00 – 02:00), miễn ≤ 8 giờ — REQ-BK-01, BK-T36 | ✅ Đã chốt 2026-09-28 |
 | Q9 | Đang 09:20 có đặt được ca "từ 9 giờ" không | Không (`IN_PAST`), bắt buộc đặt từ 10 giờ — REQ-BK-01, BK-T39 | ✅ Đã chốt 2026-09-28 |
+| Q10 | Người dùng vào container bằng cách nào | SSH `<username>@<server>` rồi tự vào container của mình (`ForceCommand`) — REQ-CT-08 | ✅ Đã chốt 2026-09-28 |
+| Q11 | Ngoài ca có chép file được không | Có: SFTP/scp/rsync chạy trên máy chủ trong `/data/users/<username>` — REQ-CT-09 | ✅ Đã chốt 2026-09-28 |
+| Q12 | Truy cập cổng (Jupyter, TensorBoard…) | Chỉ qua SSH tunnel, cổng container chỉ mở trên 127.0.0.1 — REQ-CT-05, REQ-CT-10 | ✅ Đã chốt 2026-09-28 |
 
 ## Gate Bước 1
 
 - [x] Mọi yêu cầu có ID duy nhất và tiêu chí chấp nhận đo được
 - [x] Các tham số được liệt kê trong bảng cấu hình, không rải rác
 - [x] Đã có người review và đồng ý toàn bộ spec (Q1–Q9 đã chốt 2026-09-28)
+- [ ] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review

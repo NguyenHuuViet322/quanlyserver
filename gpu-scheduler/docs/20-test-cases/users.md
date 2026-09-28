@@ -31,6 +31,7 @@
 - [x] **US-T20** (REQ-US-10) · happy · integration — Response `GET /me/password` và `POST /me/password/reset` có `Cache-Control: no-store` ✅ `958a25c`
 - [ ] **US-T21** (REQ-US-11) · happy · system — SSH bằng mật khẩu vừa cấp → đăng nhập được và bị yêu cầu đổi mật khẩu ngay
 - [ ] **US-T22** (REQ-US-12) · happy · system — Cấp lại mật khẩu → SSH bằng mật khẩu cũ thất bại; mật khẩu mới hiển thị một lần và phải đổi khi SSH
+- [ ] **US-T31** (REQ-US-07, REQ-CT-10) · happy · integration — Duyệt user → cấu hình sshd được ghi lại, có khối `Match User` của user; xóa user → ghi lại, không còn khối đó
 - [ ] **US-T23** (REQ-US-13) · happy · system — Thêm SSH key qua API → SSH bằng key thành công; xóa key → thất bại
 - [x] **US-T28** (REQ-US-13) · negative · integration — Thêm key `"not-a-key"` → `400 INVALID_SSH_KEY` ✅ `958a25c`
 

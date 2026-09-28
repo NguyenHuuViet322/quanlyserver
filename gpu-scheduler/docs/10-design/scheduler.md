@@ -37,7 +37,7 @@ Ca `exited` vẫn giữ chỗ trong lịch cho tới `end`.
 1. `pg_try_advisory_lock(SCHEDULER_LOCK)`; nếu không lấy được khóa (tick trước chưa xong hoặc có tiến trình khác) thì bỏ qua tick này. **REQ-SC-04**
 2. **Khởi chạy:** ca `scheduled` có `start_at ≤ now` → `starting` → `docker run` (xem [container.md](container.md)) → `running`, ghi `actual_start_at`. Lỗi → `failed`, lưu lỗi, tạo notification `START_FAILED`. **REQ-SC-01, SC-06**
    - Ca `scheduled` có `end_at ≤ now` (Scheduler đã tắt suốt cả ca) → `failed`.
-3. **Cảnh báo:** ca `running` có `end_at − END_WARNING ≤ now` và `warned_at IS NULL` → tạo notification `END_WARNING`, chạy `docker exec <c> sh -c 'echo "…" > /proc/1/fd/1'`, ghi `warned_at`. **REQ-SC-02**
+3. **Cảnh báo:** ca `running` có `end_at − END_WARNING ≤ now` và `warned_at IS NULL` → tạo notification `END_WARNING`, `docker exec` in thông điệp ra mọi terminal `/dev/pts/*` trong container và vào `/proc/1/fd/1` (xem [ssh.md](ssh.md)), ghi `warned_at`. **REQ-SC-02**
 4. **Dừng:** ca `running`/`exited` có `end_at ≤ now` → `stopping` → `docker stop -t STOP_TIMEOUT` → lưu log vào `/var/log/vmu/bookings/<id>.log` → `docker rm` → `completed`, ghi `actual_end_at`. **REQ-SC-03**
 5. **Đồng bộ trạng thái:** container của ca `running` đã thoát → `exited`, `exit_reason = OOM` nếu `State.OOMKilled = true`, ngược lại `EXITED`. Không khởi động lại. **REQ-SC-07, MN-04**
 6. Nhả khóa.

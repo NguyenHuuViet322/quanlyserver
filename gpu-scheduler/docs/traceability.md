@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **68** · Test case: **125** · Đã tick: **80/125**
+- REQ: **71** · Test case: **134** · Đã tick: **78/134**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -13,11 +13,11 @@
 | REQ-US-04 | Thông tin hồ sơ | api.md | US-T08 ✅ | 1/1 | backend/src/users/service.js | ✅ Xong |
 | REQ-US-05 | Tên đăng nhập | api.md, database.md | US-T09 ✅, US-T10 ✅ | 2/2 | backend/src/users/service.js, backend/src/users/username.js | ✅ Xong |
 | REQ-US-06 | Tài khoản chờ duyệt | api.md | US-T11 ✅ | 1/1 | backend/src/app.js, backend/src/users/service.js | ✅ Xong |
-| REQ-US-07 | Cấp phát khi duyệt | api.md, storage.md | US-T12, US-T15 ✅ | 2/2 | backend/src/system/linux.js | Đang làm (1/2) |
+| REQ-US-07 | Cấp phát khi duyệt | api.md, storage.md | US-T12, US-T15 ✅, US-T31 | 2/3 | backend/src/system/linux.js | Đang làm (1/3) |
 | REQ-US-08 | Giới hạn số tài khoản | api.md | US-T14 ✅ | 1/1 | — | ✅ Xong |
 | REQ-US-09 | Dải cổng | api.md, database.md | US-T13 ✅, US-T29 ✅ | 2/2 | backend/src/users/ports.js | ✅ Xong |
 | REQ-US-10 | Mật khẩu SSH ban đầu | api.md, database.md, deployment.md | US-T16 ✅, US-T17 ✅, US-T18 ✅, US-T19, US-T20 ✅ | 4/5 | backend/src/app.js, backend/src/users/password.js, backend/src/users/service.js | Đang làm (4/5) |
-| REQ-US-11 | Bắt đổi mật khẩu lần đầu | api.md | US-T21 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
+| REQ-US-11 | Bắt đổi mật khẩu lần đầu | api.md, ssh.md | US-T21 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
 | REQ-US-12 | Cấp lại mật khẩu | api.md, dashboard.md | US-T22 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
 | REQ-US-13 | SSH key | api.md, dashboard.md | US-T23, US-T28 ✅ | 1/2 | backend/src/users/service.js, backend/src/users/ssh-key.js | Đang làm (1/2) |
 | REQ-US-14 | Phân quyền | api.md | US-T24 ✅, US-T27 ✅, US-T30 ✅ | 3/3 | backend/src/app.js | ✅ Xong |
@@ -36,7 +36,7 @@
 | REQ-BK-11 | Định dạng thời gian ở API | api.md, time.md | BK-T33 ✅, BK-T34 ✅ | 2/2 | backend/src/app.js, backend/src/time/index.js | ✅ Xong |
 | REQ-BK-12 | Tính theo giờ Việt Nam, không phụ thuộc môi trường | api.md, database.md, deployment.md, time.md | BK-T35 ✅, BK-T36 ✅, BK-T37 ✅, BK-T38 ✅, BK-T40 ✅ | 5/5 | backend/src/app.js, backend/src/booking/quota.js, backend/src/time/index.js | ✅ Xong |
 | REQ-SC-01 | Khởi chạy đúng giờ | scheduler.md | SC-T01, SC-T12 ✅ | 2/2 | backend/src/scheduler/tick.js | Đang làm (1/2) |
-| REQ-SC-02 | Cảnh báo hết ca | database.md, scheduler.md | SC-T02 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
+| REQ-SC-02 | Cảnh báo hết ca | database.md, scheduler.md, ssh.md | SC-T02, SC-T15 | 1/2 | backend/src/scheduler/tick.js | Đang làm (0/2) |
 | REQ-SC-03 | Dừng khi hết ca | scheduler.md | SC-T03 ✅, SC-T04 | 2/2 | backend/src/scheduler/tick.js | Đang làm (1/2) |
 | REQ-SC-04 | Không tạo trùng container | scheduler.md | SC-T05 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-SC-05 | Reconcile khi khởi động | scheduler.md | SC-T06 ✅, SC-T07 ✅ | 2/2 | backend/src/scheduler/tick.js | ✅ Xong |
@@ -47,9 +47,12 @@
 | REQ-CT-02 | Tài nguyên | container.md | CT-T03, CT-T04, CT-T05 ✅, DP-T03 | 1/4 | backend/src/container/run-args.js | Đang làm (1/4) |
 | REQ-CT-03 | Cách ly dữ liệu | container.md | CT-T06, CT-T07 | 0/2 | backend/src/container/run-args.js | Đang làm (0/2) |
 | REQ-CT-04 | Bảo mật | container.md | CT-T08, CT-T09 ✅ | 1/2 | backend/src/container/run-args.js | Đang làm (1/2) |
-| REQ-CT-05 | Cổng | api.md, container.md | BK-T32 ✅, CT-T10 ✅ | 2/2 | backend/src/container/run-args.js | ✅ Xong |
+| REQ-CT-05 | Cổng | api.md, container.md, ssh.md | BK-T32 ✅, CT-T10 | 2/2 | backend/src/container/run-args.js | Đang làm (1/2) |
 | REQ-CT-06 | Image | api.md, container.md, database.md | BK-T31 ✅, CT-T11 ✅ | 2/2 | backend/src/booking/service.js, backend/src/container/run-args.js | ✅ Xong |
 | REQ-CT-07 | Chạy song song | container.md | CT-T12 | 0/1 | — | Chưa code (0/1) |
+| REQ-CT-08 | Vào container bằng SSH | ssh.md | CT-T13, CT-T14, CT-T15, SC-T15 | 0/4 | — | Chưa code (0/4) |
+| REQ-CT-09 | Chép file mọi lúc | ssh.md | CT-T16, CT-T17 | 0/2 | — | Chưa code (0/2) |
+| REQ-CT-10 | Cổng chỉ qua SSH tunnel | container.md, ssh.md | CT-T18, CT-T19, US-T31 | 0/3 | — | Chưa code (0/3) |
 | REQ-ST-01 | Project quota | storage.md | ST-T01, ST-T02, US-T12 | 1/3 | backend/src/system/linux.js | Đang làm (0/3) |
 | REQ-ST-02 | Vượt soft quota | database.md, storage.md | ST-T03, ST-T07 | 0/2 | — | Chưa code (0/2) |
 | REQ-ST-03 | Writable layer | container.md, storage.md | ST-T04 | 0/1 | backend/src/container/run-args.js | Đang làm (0/1) |

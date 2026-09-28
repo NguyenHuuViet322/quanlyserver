@@ -167,7 +167,14 @@ Mỗi người có 100 cổng cho Jupyter, TensorBoard, API thử nghiệm. Ngư
 | …          | …             |
 | User 30    | 12900 – 12999 |
 
-Container chỉ được publish cổng trong dải của chính người dùng đó.
+Container chỉ được publish cổng trong dải của chính người dùng đó, và chỉ trên `127.0.0.1`. Người dùng mở cổng qua SSH tunnel, ví dụ `ssh -L 10001:localhost:10001 vietnh@<server>` rồi mở `http://localhost:10001`; không tunnel được tới cổng của người khác.
+
+### 5.4. Truy cập bằng SSH
+
+- Người dùng đăng nhập `ssh <username>@<server>`, trong đó `<username>` là phần trước `@vimaru.edu.vn`, mật khẩu là mật khẩu ngẫu nhiên nhận trên Dashboard (bắt đổi ở lần đầu), hoặc SSH key.
+- **Có ca đang chạy:** SSH tự đưa người dùng vào container của chính họ, tại `/workspace`. Lệnh kèm theo (`ssh user@server nvidia-smi`, VS Code Remote-SSH) cũng chạy trong container.
+- **Không có ca:** không có shell; hệ thống báo "Bạn chưa có ca đang chạy". Riêng chép file (`sftp`, `scp`, `rsync`) vẫn dùng được mọi lúc, vào `/data/users/<username>`.
+- Người dùng không bao giờ có shell trên máy chủ và không vào được container hay thư mục của người khác.
 
 ## 6. Hệ thống điều phối (Scheduler)
 

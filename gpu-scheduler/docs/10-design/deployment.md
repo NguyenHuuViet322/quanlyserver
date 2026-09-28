@@ -10,6 +10,8 @@
 
 Các lệnh cần root đi qua [`deploy/vmu-provision`](../../deploy/vmu-provision), cài tại `/usr/local/sbin/vmu-provision`, sudoers: `vmu ALL=(root) NOPASSWD: /usr/local/sbin/vmu-provision`. Helper chỉ nhận một danh sách thao tác cố định, từ chối user có UID < 2001; mật khẩu và SSH key truyền qua stdin.
 
+SSH: cài [`deploy/vmu-enter`](../../deploy/vmu-enter) vào `/usr/local/bin/`, [`deploy/vmu-exec`](../../deploy/vmu-exec) vào `/usr/local/sbin/`, [`deploy/sshd/50-vmu.conf`](../../deploy/sshd/50-vmu.conf) vào `/etc/ssh/sshd_config.d/`; tạo nhóm `vmu-users`; sudoers `%vmu-users ALL=(root) NOPASSWD: /usr/local/sbin/vmu-exec`; `/data/users` là `root:root 0711`. Chi tiết: [ssh.md](ssh.md).
+
 Biến môi trường: `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `PASSWORD_ENC_KEY` (64 ký tự hex, `openssl rand -hex 32`), `PORT`, `HOST`. Lần đầu: `node backend/src/cli.js migrate`.
 
 Cả hai service chạy bằng user hệ thống `vmu` (thuộc nhóm `docker`), gọi `vmu-provision` qua `sudo` cho các lệnh cần root (xem [storage.md](storage.md)).
