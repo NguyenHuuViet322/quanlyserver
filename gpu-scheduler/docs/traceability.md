@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **71** · Test case: **137** · Đã tick: **90/137**
+- REQ: **71** · Test case: **137** · Đã tick: **100/137**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -62,16 +62,16 @@
 | REQ-MN-02 | Log container | api.md, dashboard.md | MN-T02 ✅, MN-T05 ✅ | 2/2 | backend/src/app.js, backend/src/cli.js, backend/src/monitoring/service.js, frontend/src/views/bookings.js | ✅ Xong |
 | REQ-MN-03 | Audit log | api.md, database.md | MN-T03 ✅ | 1/1 | backend/src/monitoring/service.js, frontend/src/views/admin.js | ✅ Xong |
 | REQ-MN-04 | Lý do dừng | api.md, dashboard.md, scheduler.md | MN-T04 ✅, MN-T06 ✅ | 2/2 | backend/src/monitoring/service.js, backend/src/scheduler/tick.js, frontend/src/views/bookings.js | ✅ Xong |
-| REQ-UI-01 | Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", khôn… | dashboard.md | UI-T01 | 1/1 | frontend/src/views/calendar.js | Đang làm (0/1) |
-| REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 | 1/1 | backend/src/booking/service.js, frontend/src/views/calendar.js | Đang làm (0/1) |
-| REQ-UI-03 | Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ… | dashboard.md | UI-T03 | 1/1 | frontend/src/ui.js, frontend/src/views/calendar.js | Đang làm (0/1) |
-| REQ-UI-04 | User MUST thấy giờ GPU còn lại trong tuần. | api.md, dashboard.md | UI-T04 | 1/1 | backend/src/booking/service.js, frontend/src/views/overview.js | Đang làm (0/1) |
-| REQ-UI-05 | User MUST thấy username, dải cổng, dung lượng đã dùng / q… | api.md, dashboard.md | UI-T05 | 1/1 | backend/src/storage/service.js, frontend/src/views/account.js, frontend/src/views/overview.js | Đang làm (0/1) |
-| REQ-UI-06 | User MUST hủy ca và kết thúc sớm được từ giao diện. | dashboard.md | UI-T06 | 1/1 | frontend/src/views/bookings.js | Đang làm (0/1) |
-| REQ-UI-07 | Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy … | dashboard.md | UI-T07 | 1/1 | frontend/src/views/auth.js | Đang làm (0/1) |
-| REQ-UI-08 | Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu l… | dashboard.md | UI-T08 | 1/1 | frontend/src/app.js, frontend/src/views/auth.js | Đang làm (0/1) |
-| REQ-UI-09 | Admin có trang duyệt, khóa, xóa tài khoản. | dashboard.md | UI-T09 | 1/1 | frontend/src/views/admin.js | Đang làm (0/1) |
-| REQ-UI-10 | Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kè… | dashboard.md, time.md | UI-T10, UI-T11 | 2/2 | frontend/src/time.js, frontend/src/views/calendar.js | Đang làm (0/2) |
+| REQ-UI-01 | Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", khôn… | dashboard.md | UI-T01 ✅ | 1/1 | frontend/src/views/calendar.js | ✅ Xong |
+| REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 ✅ | 1/1 | backend/src/booking/service.js, frontend/src/views/calendar.js | ✅ Xong |
+| REQ-UI-03 | Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ… | dashboard.md | UI-T03 ✅ | 1/1 | frontend/src/ui.js, frontend/src/views/calendar.js | ✅ Xong |
+| REQ-UI-04 | User MUST thấy giờ GPU còn lại trong tuần. | api.md, dashboard.md | UI-T04 ✅ | 1/1 | backend/src/booking/service.js, frontend/src/views/overview.js | ✅ Xong |
+| REQ-UI-05 | User MUST thấy username, dải cổng, dung lượng đã dùng / q… | api.md, dashboard.md | UI-T05 ✅ | 1/1 | backend/src/storage/service.js, frontend/src/views/account.js, frontend/src/views/overview.js | ✅ Xong |
+| REQ-UI-06 | User MUST hủy ca và kết thúc sớm được từ giao diện. | dashboard.md | UI-T06 ✅ | 1/1 | frontend/src/views/bookings.js | ✅ Xong |
+| REQ-UI-07 | Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy … | dashboard.md | UI-T07 ✅ | 1/1 | frontend/src/views/auth.js | ✅ Xong |
+| REQ-UI-08 | Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu l… | dashboard.md | UI-T08 ✅ | 1/1 | frontend/src/app.js, frontend/src/views/auth.js | ✅ Xong |
+| REQ-UI-09 | Admin có trang duyệt, khóa, xóa tài khoản. | dashboard.md | UI-T09 ✅ | 1/1 | frontend/src/views/admin.js | ✅ Xong |
+| REQ-UI-10 | Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kè… | dashboard.md, time.md | UI-T10, UI-T11 ✅ | 2/2 | frontend/src/time.js, frontend/src/views/calendar.js | Đang làm (1/2) |
 | REQ-DP-01 | Backend và Scheduler MUST chạy dưới systemd, tự khởi động… | deployment.md | DP-T01 | 0/1 | — | Chưa code (0/1) |
 | REQ-DP-02 | Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hư… | api.md, deployment.md | DP-T02 | 0/1 | — | Chưa code (0/1) |
 | REQ-DP-03 | Tổng giới hạn RAM của các container MUST ≤ RAM host − `HO… | deployment.md | DP-T03 | 0/1 | backend/src/scheduler/main.js | Đang làm (0/1) |
