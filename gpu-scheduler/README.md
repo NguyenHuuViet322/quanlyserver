@@ -42,7 +42,7 @@ npm run db:test            # khởi động PostgreSQL test trong Docker (cổng
 npm run test:integration   # cần PostgreSQL, DATABASE_URL
 npm run test:system        # trên server có GPU
 npm run test:e2e           # Playwright; Windows dùng Edge có sẵn, Linux cần `npx playwright install chromium`
-npm run start:dev          # chạy thử Dashboard với dữ liệu giả: http://127.0.0.1:4173
+npm run dev                # chạy thử Dashboard (dữ liệu mẫu, đồng hồ thật): http://127.0.0.1:4174/__dev
 npm run sync-ticks         # tick/bỏ tick từ reports/*.xml
 node tools/sync-ticks.js --manual SC-T04   # test system, cần reports/system/SC-T04.log
 ```
