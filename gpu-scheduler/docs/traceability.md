@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **68** · Test case: **125** · Đã tick: **24/125**
+- REQ: **68** · Test case: **125** · Đã tick: **63/125**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -23,32 +23,32 @@
 | REQ-US-14 | Phân quyền | api.md | US-T24 ✅, US-T27 ✅, US-T30 ✅ | 3/3 | backend/src/app.js | ✅ Xong |
 | REQ-US-15 | Khóa tài khoản | api.md | US-T25 | 1/1 | backend/src/app.js, backend/src/users/service.js | Đang làm (0/1) |
 | REQ-US-16 | Xóa tài khoản | api.md, database.md, storage.md | US-T26 ✅, US-T29 ✅ | 2/2 | backend/src/cli.js, backend/src/users/service.js | ✅ Xong |
-| REQ-BK-01 | Hợp lệ thời gian | api.md, database.md, time.md | BK-T01, BK-T02, BK-T03, BK-T04, BK-T05, BK-T06, BK-T24, BK-T39, BK-T40 | 0/9 | — | Chưa code (0/9) |
-| REQ-BK-02 | Tối đa 2 phiên đồng thời | api.md, database.md | BK-T07, BK-T08, BK-T10, BK-T11, BK-T12, BK-T13 | 0/6 | — | Chưa code (0/6) |
-| REQ-BK-03 | Tối đa 1 phiên GPU | api.md | BK-T08, BK-T09, BK-T13, BK-T29 | 0/4 | — | Chưa code (0/4) |
-| REQ-BK-04 | Không tự chồng | api.md | BK-T14 | 0/1 | — | Chưa code (0/1) |
-| REQ-BK-05 | Hạn mức GPU theo tuần | api.md, database.md, scheduler.md | BK-T16, BK-T17, BK-T18, BK-T28, BK-T37 | 0/5 | — | Chưa code (0/5) |
-| REQ-BK-06 | An toàn khi đồng thời | api.md, database.md | BK-T19, BK-T20 | 0/2 | — | Chưa code (0/2) |
-| REQ-BK-07 | Quyền trên ca | api.md | BK-T21, BK-T27, BK-T30 | 0/3 | — | Chưa code (0/3) |
-| REQ-BK-08 | Hủy và kết thúc sớm | api.md, scheduler.md | BK-T22, BK-T23, BK-T26 | 0/3 | — | Chưa code (0/3) |
-| REQ-BK-09 | Ca không hiệu lực | api.md | BK-T15 | 0/1 | — | Chưa code (0/1) |
-| REQ-BK-10 | Dữ liệu đặt ca | api.md | BK-T25, BK-T31, BK-T32 | 0/3 | — | Chưa code (0/3) |
-| REQ-BK-11 | Định dạng thời gian ở API | api.md, time.md | BK-T33, BK-T34 | 0/2 | — | Chưa code (0/2) |
-| REQ-BK-12 | Tính theo giờ Việt Nam, không phụ thuộc môi trường | api.md, database.md, deployment.md, time.md | BK-T35, BK-T36, BK-T37, BK-T38, BK-T40 | 0/5 | — | Chưa code (0/5) |
+| REQ-BK-01 | Hợp lệ thời gian | api.md, database.md, time.md | BK-T01 ✅, BK-T02 ✅, BK-T03 ✅, BK-T04 ✅, BK-T05 ✅, BK-T06 ✅, BK-T24 ✅, BK-T39 ✅, BK-T40 ✅ | 9/9 | backend/src/app.js, backend/src/booking/rules.js | ✅ Xong |
+| REQ-BK-02 | Tối đa 2 phiên đồng thời | api.md, database.md | BK-T07 ✅, BK-T08 ✅, BK-T10 ✅, BK-T11 ✅, BK-T12 ✅, BK-T13 ✅ | 6/6 | backend/src/app.js, backend/src/booking/conflict.js | ✅ Xong |
+| REQ-BK-03 | Tối đa 1 phiên GPU | api.md | BK-T08 ✅, BK-T09 ✅, BK-T13 ✅, BK-T29 ✅ | 4/4 | backend/src/app.js, backend/src/booking/conflict.js | ✅ Xong |
+| REQ-BK-04 | Không tự chồng | api.md | BK-T14 ✅ | 1/1 | backend/src/app.js, backend/src/booking/conflict.js | ✅ Xong |
+| REQ-BK-05 | Hạn mức GPU theo tuần | api.md, database.md, scheduler.md | BK-T16 ✅, BK-T17 ✅, BK-T18 ✅, BK-T28 ✅, BK-T37 ✅ | 5/5 | backend/src/app.js, backend/src/booking/quota.js | ✅ Xong |
+| REQ-BK-06 | An toàn khi đồng thời | api.md, database.md | BK-T19 ✅, BK-T20 ✅ | 2/2 | backend/src/app.js, backend/src/booking/service.js | ✅ Xong |
+| REQ-BK-07 | Quyền trên ca | api.md | BK-T21 ✅, BK-T27 ✅, BK-T30 ✅ | 3/3 | backend/src/app.js, backend/src/booking/service.js | ✅ Xong |
+| REQ-BK-08 | Hủy và kết thúc sớm | api.md, scheduler.md | BK-T22 ✅, BK-T23, BK-T26 ✅ | 2/3 | backend/src/app.js, backend/src/booking/service.js | Đang làm (2/3) |
+| REQ-BK-09 | Ca không hiệu lực | api.md | BK-T15 ✅ | 1/1 | backend/src/app.js, backend/src/booking/conflict.js | ✅ Xong |
+| REQ-BK-10 | Dữ liệu đặt ca | api.md | BK-T25 ✅, BK-T31 ✅, BK-T32 ✅ | 3/3 | backend/src/app.js, backend/src/booking/service.js | ✅ Xong |
+| REQ-BK-11 | Định dạng thời gian ở API | api.md, time.md | BK-T33 ✅, BK-T34 ✅ | 2/2 | backend/src/app.js, backend/src/time/index.js | ✅ Xong |
+| REQ-BK-12 | Tính theo giờ Việt Nam, không phụ thuộc môi trường | api.md, database.md, deployment.md, time.md | BK-T35 ✅, BK-T36 ✅, BK-T37 ✅, BK-T38 ✅, BK-T40 ✅ | 5/5 | backend/src/app.js, backend/src/booking/quota.js, backend/src/time/index.js | ✅ Xong |
 | REQ-SC-01 | Khởi chạy đúng giờ | scheduler.md | SC-T01, SC-T12 | 0/2 | — | Chưa code (0/2) |
 | REQ-SC-02 | Cảnh báo hết ca | database.md, scheduler.md | SC-T02 | 0/1 | — | Chưa code (0/1) |
 | REQ-SC-03 | Dừng khi hết ca | scheduler.md | SC-T03, SC-T04 | 0/2 | — | Chưa code (0/2) |
 | REQ-SC-04 | Không tạo trùng container | scheduler.md | SC-T05 | 0/1 | — | Chưa code (0/1) |
 | REQ-SC-05 | Reconcile khi khởi động | scheduler.md | SC-T06, SC-T07 | 0/2 | — | Chưa code (0/2) |
 | REQ-SC-06 | Lỗi tạo container | scheduler.md | SC-T08 | 0/1 | — | Chưa code (0/1) |
-| REQ-SC-07 | Container tự thoát | api.md, container.md, scheduler.md | SC-T09, SC-T10, SC-T11 | 0/3 | — | Chưa code (0/3) |
+| REQ-SC-07 | Container tự thoát | api.md, container.md, scheduler.md | SC-T09, SC-T10, SC-T11 | 0/3 | backend/src/booking/service.js | Đang làm (0/3) |
 | REQ-SC-08 | Đồng hồ của Scheduler | container.md, scheduler.md, time.md | SC-T13, SC-T14 | 0/2 | — | Chưa code (0/2) |
 | REQ-CT-01 | GPU | container.md | CT-T01, CT-T02 | 0/2 | — | Chưa code (0/2) |
 | REQ-CT-02 | Tài nguyên | container.md | CT-T03, CT-T04, CT-T05, DP-T03 | 0/4 | — | Chưa code (0/4) |
 | REQ-CT-03 | Cách ly dữ liệu | container.md | CT-T06, CT-T07 | 0/2 | — | Chưa code (0/2) |
 | REQ-CT-04 | Bảo mật | container.md | CT-T08, CT-T09 | 0/2 | — | Chưa code (0/2) |
-| REQ-CT-05 | Cổng | api.md, container.md | BK-T32, CT-T10 | 0/2 | — | Chưa code (0/2) |
-| REQ-CT-06 | Image | api.md, container.md, database.md | BK-T31, CT-T11 | 0/2 | — | Chưa code (0/2) |
+| REQ-CT-05 | Cổng | api.md, container.md | BK-T32 ✅, CT-T10 | 1/2 | — | Chưa code (0/2) |
+| REQ-CT-06 | Image | api.md, container.md, database.md | BK-T31 ✅, CT-T11 | 1/2 | backend/src/booking/service.js | Đang làm (1/2) |
 | REQ-CT-07 | Chạy song song | container.md | CT-T12 | 0/1 | — | Chưa code (0/1) |
 | REQ-ST-01 | Project quota | storage.md | ST-T01, ST-T02, US-T12 | 1/3 | backend/src/system/linux.js | Đang làm (0/3) |
 | REQ-ST-02 | Vượt soft quota | database.md, storage.md | ST-T03, ST-T07 | 0/2 | — | Chưa code (0/2) |
@@ -60,9 +60,9 @@
 | REQ-MN-03 | Audit log | api.md, database.md | MN-T03 | 0/1 | — | Chưa code (0/1) |
 | REQ-MN-04 | Lý do dừng | api.md, dashboard.md, scheduler.md | MN-T04 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-01 | Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", khôn… | dashboard.md | UI-T01 | 0/1 | — | Chưa code (0/1) |
-| REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 | 0/1 | — | Chưa code (0/1) |
+| REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 | 0/1 | backend/src/booking/service.js | Đang làm (0/1) |
 | REQ-UI-03 | Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ… | dashboard.md | UI-T03 | 0/1 | — | Chưa code (0/1) |
-| REQ-UI-04 | User MUST thấy giờ GPU còn lại trong tuần. | api.md, dashboard.md | UI-T04 | 0/1 | — | Chưa code (0/1) |
+| REQ-UI-04 | User MUST thấy giờ GPU còn lại trong tuần. | api.md, dashboard.md | UI-T04 | 0/1 | backend/src/booking/service.js | Đang làm (0/1) |
 | REQ-UI-05 | User MUST thấy username, dải cổng, dung lượng đã dùng / q… | api.md, dashboard.md | UI-T05 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-06 | User MUST hủy ca và kết thúc sớm được từ giao diện. | dashboard.md | UI-T06 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-07 | Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy … | dashboard.md | UI-T07 | 0/1 | — | Chưa code (0/1) |
