@@ -145,6 +145,15 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
     return text;
   });
   app.get('/api/bookings/:id/metrics', async (req) => monitoring.bookingMetrics(ctx, req.user, bookingId(req)));
+  app.get('/api/notifications', async (req) => monitoring.listNotifications(ctx, req.user, req.query));
+  app.post('/api/notifications/read-all', async (req, reply) => {
+    await monitoring.markAllNotificationsRead(ctx, req.user);
+    return reply.code(204).send();
+  });
+  app.post('/api/notifications/:id/read', async (req, reply) => {
+    await monitoring.markNotificationRead(ctx, req.user, Number(req.params.id) || 0);
+    return reply.code(204).send();
+  });
   app.post('/api/bookings/:id/restart', async (req, reply) =>
     reply.code(202).send(await bookings.restartBooking(ctx, req.user, bookingId(req))));
 

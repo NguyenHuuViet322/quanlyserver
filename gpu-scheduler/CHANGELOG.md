@@ -14,6 +14,7 @@
 - Truy cập SSH: `deploy/vmu-enter` (ForceCommand, chép file chạy trên máy chủ không qua shell), `deploy/vmu-exec` (vào container của chính user), `deploy/sshd/50-vmu.conf`, `deploy/sudoers.d/vmu`, `PermitOpen` riêng từng user tự sinh khi duyệt/xóa user.
 - M5 Lưu trữ: đọc `xfs_quota` mỗi 5 phút, trường `storage` trong `GET /me`, cảnh báo vượt soft quota kèm hạn dọn dẹp.
 - M6 Giám sát: `GET /bookings/:id/logs`, `GET /bookings/:id/metrics` (`docker stats`, `nvidia-smi`), `GET /admin/audit`, dọn log quá 30 ngày trong lệnh `purge`.
+- Thông báo: `GET /notifications` (`?unread=1`, `?limit`), `POST /notifications/:id/read`, `POST /notifications/read-all`.
 
 ### Thay đổi
 - Cổng container chỉ mở trên `127.0.0.1`, truy cập qua SSH tunnel.

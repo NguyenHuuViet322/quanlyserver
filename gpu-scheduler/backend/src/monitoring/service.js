@@ -94,4 +94,45 @@ async function listAudit(ctx, query) {
   }));
 }
 
-module.exports = { bookingLogs, bookingMetrics, purgeOldLogs, listAudit };
+// --- Thông báo — REQ-SC-02, REQ-SC-06, REQ-MN-04, REQ-ST-02 ---
+
+async function listNotifications(ctx, user, query) {
+  const limit = Math.min(Math.max(Number.parseInt(query.limit, 10) || 50, 1), 200);
+  const onlyUnread = query.unread === '1';
+  const { rows } = await ctx.db.query(
+    `SELECT id, kind, booking_id, message, created_at, read_at FROM notifications
+     WHERE user_id = $1 ${onlyUnread ? 'AND read_at IS NULL' : ''}
+     ORDER BY created_at DESC, id DESC LIMIT $2`, [user.id, limit]);
+  const count = await ctx.db.query('SELECT count(*)::int AS n FROM notifications WHERE user_id = $1 AND read_at IS NULL', [user.id]);
+  return {
+    unread_count: count.rows[0].n,
+    items: rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      booking_id: r.booking_id,
+      message: r.message,
+      created_at: toVnIso(r.created_at),
+      read_at: r.read_at ? toVnIso(r.read_at) : null,
+    })),
+  };
+}
+
+async function markNotificationRead(ctx, user, id) {
+  const { rowCount } = await ctx.db.query(
+    'UPDATE notifications SET read_at = coalesce(read_at, $3) WHERE id = $1 AND user_id = $2', [id, user.id, ctx.clock.now()]);
+  if (!rowCount) throw err.notFound();
+}
+
+async function markAllNotificationsRead(ctx, user) {
+  await ctx.db.query('UPDATE notifications SET read_at = $2 WHERE user_id = $1 AND read_at IS NULL', [user.id, ctx.clock.now()]);
+}
+
+module.exports = {
+  bookingLogs,
+  bookingMetrics,
+  purgeOldLogs,
+  listAudit,
+  listNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+};

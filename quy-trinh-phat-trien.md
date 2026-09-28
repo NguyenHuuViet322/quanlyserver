@@ -205,10 +205,10 @@ Checklist gốc nằm ở [`gpu-scheduler/docs/20-test-cases/`](gpu-scheduler/do
 | M3 Scheduler | [scheduler.md](gpu-scheduler/docs/20-test-cases/scheduler.md) | 15 |
 | M4 Container & truy cập SSH | [container.md](gpu-scheduler/docs/20-test-cases/container.md) | 19 |
 | M5 Lưu trữ | [storage.md](gpu-scheduler/docs/20-test-cases/storage.md) | 7 |
-| M6 Giám sát & log | [monitoring.md](gpu-scheduler/docs/20-test-cases/monitoring.md) | 5 |
+| M6 Giám sát & log | [monitoring.md](gpu-scheduler/docs/20-test-cases/monitoring.md) | 8 |
 | M7 Dashboard | [dashboard.md](gpu-scheduler/docs/20-test-cases/dashboard.md) | 11 |
 | M8 Triển khai | [deployment.md](gpu-scheduler/docs/20-test-cases/deployment.md) | 6 |
-| **Tổng** | | **134** |
+| **Tổng** | | **137** |
 
 So với bản checklist trước (95 mục):
 - Mỗi test case ghi rõ REQ, loại (`happy`/`negative`/`edge`) và tầng test (`unit`/`integration`/`system`/`e2e`/`manual`).

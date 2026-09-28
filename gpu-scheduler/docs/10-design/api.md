@@ -125,7 +125,19 @@ Ba API trên kiểm tra theo thứ tự: `404 NOT_FOUND` → `403 FORBIDDEN` (kh
 - `GET /bookings/:id/metrics` → `{ "cpu_percent": 312.5, "mem_bytes": …, "mem_limit_bytes": …, "gpu": { "util_percent": 97, "mem_used_bytes": …, "mem_total_bytes": … } | null, "sampled_at": "…" }`. Đọc trực tiếp khi gọi (`docker stats`, `nvidia-smi`); `gpu` chỉ có với ca `use_gpu`. Ca không `running` → `409 INVALID_STATE`.
 - `GET /bookings/:id/logs?tail=1000` → `text/plain`: log đã lưu của các lần chạy trước + log trực tiếp nếu container còn. Xem được trong `LOG_RETENTION` sau khi ca kết thúc; không có log → `404 NOT_FOUND`.
 - Cả hai: chỉ chủ ca hoặc admin (`403 FORBIDDEN`).
-- `GET /notifications` → danh sách thông báo (cảnh báo hết ca, lỗi khởi chạy, OOM, soft quota).
+### Thông báo — REQ-SC-02, REQ-SC-06, REQ-MN-04, REQ-ST-02
+
+`GET /notifications?unread=1&limit=50` — thông báo của chính user, mới nhất trước (`limit` mặc định 50, tối đa 200):
+```json
+{ "unread_count": 2,
+  "items": [ { "id": 9, "kind": "END_WARNING", "booking_id": 42,
+               "message": "Ca của bạn kết thúc lúc 11:00 (GMT+7). Hãy lưu checkpoint.",
+               "created_at": "2026-10-05T10:45:00+07:00", "read_at": null } ] }
+```
+`kind` ∈ `END_WARNING`, `START_FAILED`, `OOM`, `SOFT_QUOTA`.
+
+- `POST /notifications/:id/read` → `204`. Thông báo không tồn tại hoặc của người khác → `404 NOT_FOUND`.
+- `POST /notifications/read-all` → `204`.
 
 ## Admin — REQ-US-07, REQ-US-08, REQ-US-14..16, REQ-MN-03
 
