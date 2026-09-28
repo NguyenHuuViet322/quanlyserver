@@ -16,7 +16,8 @@ const { execSync } = require('node:child_process');
 
 const ROOT = path.resolve(__dirname, '..');
 const CASES_DIR = path.join(ROOT, 'docs', '20-test-cases');
-const ID_RE = /^((?:US|BK|SC|CT|ST|MN|UI|DP)-T\d+)\b/;
+// ID ở đầu tên test, hoặc ngay sau tiền tố nhóm của Playwright ("nhóm › UI-T10 …")
+const ID_RE = /(?:^|› )((?:US|BK|SC|CT|ST|MN|UI|DP)-T\d+)\b/;
 
 function parseArgs(argv) {
   const opts = { commit: null, manual: [], reports: [] };

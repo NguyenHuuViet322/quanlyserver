@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **71** · Test case: **137** · Đã tick: **100/137**
+- REQ: **71** · Test case: **137** · Đã tick: **101/137**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -71,7 +71,7 @@
 | REQ-UI-07 | Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy … | dashboard.md | UI-T07 ✅ | 1/1 | frontend/src/views/auth.js | ✅ Xong |
 | REQ-UI-08 | Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu l… | dashboard.md | UI-T08 ✅ | 1/1 | frontend/src/app.js, frontend/src/views/auth.js | ✅ Xong |
 | REQ-UI-09 | Admin có trang duyệt, khóa, xóa tài khoản. | dashboard.md | UI-T09 ✅ | 1/1 | frontend/src/views/admin.js | ✅ Xong |
-| REQ-UI-10 | Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kè… | dashboard.md, time.md | UI-T10, UI-T11 ✅ | 2/2 | frontend/src/time.js, frontend/src/views/calendar.js | Đang làm (1/2) |
+| REQ-UI-10 | Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kè… | dashboard.md, time.md | UI-T10 ✅, UI-T11 ✅ | 2/2 | frontend/src/time.js, frontend/src/views/calendar.js | ✅ Xong |
 | REQ-DP-01 | Backend và Scheduler MUST chạy dưới systemd, tự khởi động… | deployment.md | DP-T01 | 0/1 | — | Chưa code (0/1) |
 | REQ-DP-02 | Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hư… | api.md, deployment.md | DP-T02 | 0/1 | — | Chưa code (0/1) |
 | REQ-DP-03 | Tổng giới hạn RAM của các container MUST ≤ RAM host − `HO… | deployment.md | DP-T03 | 0/1 | backend/src/scheduler/main.js | Đang làm (0/1) |
