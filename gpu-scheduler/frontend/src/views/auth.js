@@ -29,6 +29,8 @@ export function renderLogin(root, onDone, notice = '') {
     <div id="login-error" role="alert"></div>
     <button class="btn btn-secondary btn-block google-btn" id="google-login" type="button">${GOOGLE_G}<span>Đăng nhập bằng Google</span></button>
     <div class="gsi-slot" id="gsi" aria-hidden="true" style="display:none"></div>
+    ${state.config?.dev_login ? `<a class="btn btn-primary btn-block" href="/__dev" style="margin-top:12px">${icon('user')}Chạy thử: chọn tài khoản mẫu</a>
+      <p class="subtle" style="margin-top:8px">Đang chạy thử trên máy local: Google là bản giả, hãy dùng tài khoản mẫu.</p>` : ''}
     <p class="foot">Chỉ dùng email <strong>@vimaru.edu.vn</strong>. Tài khoản mới cần quản trị viên duyệt.</p>`);
 
   const errBox = root.querySelector('#login-error');

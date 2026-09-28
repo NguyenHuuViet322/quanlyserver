@@ -81,6 +81,7 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
     slot_max_hours: cfg.slotMaxMs / 3600000,
     booking_horizon_days: cfg.bookingHorizonMs / 86400000,
     max_concurrent_sessions: cfg.maxConcurrentSessions,
+    ...(cfg.devLogin && { dev_login: true }),
   }));
 
   app.addHook('onRequest', async (req) => {

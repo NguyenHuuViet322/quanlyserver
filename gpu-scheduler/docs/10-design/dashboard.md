@@ -6,7 +6,7 @@ SPA thuần (ES module, không bước build) trong `frontend/src/`, gọi API t
 
 **Giao diện:** màu từ logo VMU (`icon.svg`): xanh chủ đạo `#1f2bd0`, đỏ VMU `#e0101f` chỉ làm điểm nhấn thương hiệu; nền trắng/xám nhạt; font Inter; icon SVG nét 1.75 (không emoji); token trong `styles.css`. Trạng thái luôn có chữ, không chỉ dựa vào màu; vùng bấm ≥ 44px; tôn trọng `prefers-reduced-motion`. Nội dung **dàn hết chiều rộng** màn hình (không có dải trắng ở màn hình lớn).
 
-**Chạy thử trên máy local:** `npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev để chọn tài khoản mẫu (CSDL riêng `vmu_dev`, đồng hồ thật, Google/hệ thống/Docker giả). Production: Nginx phục vụ `frontend/src/`.
+**Chạy thử trên máy local:** `npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev để chọn tài khoản mẫu (CSDL riêng `vmu_dev`, đồng hồ thật, Google/hệ thống/Docker giả). Mỗi lần khởi động lại, dữ liệu mẫu và phiên đăng nhập được tạo lại; trang đăng nhập hiện nút "Chạy thử: chọn tài khoản mẫu" (chỉ khi chạy thử, cờ `dev_login` trong `/api/config`). Production: Nginx phục vụ `frontend/src/`.
 
 **Đăng nhập:** nút của trang gọi Google Identity Services (One Tap, bị chặn thì hiện nút chính thức) → `POST /api/auth/google`.
 

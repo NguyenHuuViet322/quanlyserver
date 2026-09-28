@@ -40,6 +40,7 @@ const defaults = Object.freeze({
   sessionTtlMs: 30 * DAY,
   sshHost: 'gpu.vimaru.edu.vn', // hiển thị hướng dẫn SSH trên Dashboard — biến môi trường SSH_HOST
   dashboardUrl: 'https://gpu.vimaru.edu.vn', // DASHBOARD_URL
+  devLogin: false, // chỉ tools/dev-server.js bật: trang đăng nhập hiện lối vào /__dev
   passwordEncKey: null, // 32 byte hex, bắt buộc — biến môi trường PASSWORD_ENC_KEY
 });
 

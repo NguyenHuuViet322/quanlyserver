@@ -36,7 +36,7 @@ async function main() {
   const system = createFakeSystem();
   const docker = createFakeDocker();
   const clock = { now: () => new Date() };
-  const config = { passwordEncKey: 'c'.repeat(64), sshHost: 'gpu.vimaru.edu.vn', dashboardUrl: `http://127.0.0.1:${PORT}` };
+  const config = { passwordEncKey: 'c'.repeat(64), sshHost: 'gpu.vimaru.edu.vn', dashboardUrl: `http://127.0.0.1:${PORT}`, devLogin: true };
   const cfg = loadConfig(config);
   const ctx = { db, system, docker, clock, cfg };
 
