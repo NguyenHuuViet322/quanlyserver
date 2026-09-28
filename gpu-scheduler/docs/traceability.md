@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **71** · Test case: **134** · Đã tick: **83/134**
+- REQ: **71** · Test case: **134** · Đã tick: **87/134**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -54,19 +54,19 @@
 | REQ-CT-09 | Chép file mọi lúc | ssh.md | CT-T16, CT-T17 ✅ | 1/2 | — | Chưa code (0/2) |
 | REQ-CT-10 | Cổng chỉ qua SSH tunnel | container.md, ssh.md | CT-T18 ✅, CT-T19, US-T31 ✅ | 2/3 | backend/src/container/run-args.js, backend/src/system/sshd.js, backend/src/users/service.js | Đang làm (2/3) |
 | REQ-ST-01 | Project quota | storage.md | ST-T01, ST-T02, US-T12 | 1/3 | backend/src/system/linux.js | Đang làm (0/3) |
-| REQ-ST-02 | Vượt soft quota | database.md, storage.md | ST-T03, ST-T07 | 0/2 | — | Chưa code (0/2) |
+| REQ-ST-02 | Vượt soft quota | database.md, storage.md | ST-T03 ✅, ST-T07 | 1/2 | backend/src/scheduler/main.js, backend/src/storage/service.js | Đang làm (1/2) |
 | REQ-ST-03 | Writable layer | container.md, storage.md | ST-T04 | 0/1 | backend/src/container/run-args.js | Đang làm (0/1) |
 | REQ-ST-04 | Dữ liệu bền vững | storage.md | ST-T05 | 0/1 | — | Chưa code (0/1) |
-| REQ-ST-05 | Báo cáo dung lượng | storage.md | ST-T06 | 0/1 | — | Chưa code (0/1) |
-| REQ-MN-01 | Số liệu phiên | api.md, dashboard.md | MN-T01 | 0/1 | — | Chưa code (0/1) |
-| REQ-MN-02 | Log container | api.md, dashboard.md | MN-T02, MN-T05 | 0/2 | — | Chưa code (0/2) |
-| REQ-MN-03 | Audit log | api.md, database.md | MN-T03 | 0/1 | — | Chưa code (0/1) |
+| REQ-ST-05 | Báo cáo dung lượng | database.md, storage.md | ST-T06 | 1/1 | backend/src/scheduler/main.js, backend/src/storage/service.js, backend/src/storage/xfs.js | Đang làm (0/1) |
+| REQ-MN-01 | Số liệu phiên | api.md, dashboard.md | MN-T01 | 1/1 | backend/src/app.js, backend/src/monitoring/parse.js, backend/src/monitoring/service.js | Đang làm (0/1) |
+| REQ-MN-02 | Log container | api.md, dashboard.md | MN-T02 ✅, MN-T05 ✅ | 2/2 | backend/src/app.js, backend/src/cli.js, backend/src/monitoring/service.js | ✅ Xong |
+| REQ-MN-03 | Audit log | api.md, database.md | MN-T03 ✅ | 1/1 | backend/src/monitoring/service.js | ✅ Xong |
 | REQ-MN-04 | Lý do dừng | api.md, dashboard.md, scheduler.md | MN-T04 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-UI-01 | Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", khôn… | dashboard.md | UI-T01 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 | 0/1 | backend/src/booking/service.js | Đang làm (0/1) |
 | REQ-UI-03 | Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ… | dashboard.md | UI-T03 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-04 | User MUST thấy giờ GPU còn lại trong tuần. | api.md, dashboard.md | UI-T04 | 0/1 | backend/src/booking/service.js | Đang làm (0/1) |
-| REQ-UI-05 | User MUST thấy username, dải cổng, dung lượng đã dùng / q… | api.md, dashboard.md | UI-T05 | 0/1 | — | Chưa code (0/1) |
+| REQ-UI-05 | User MUST thấy username, dải cổng, dung lượng đã dùng / q… | api.md, dashboard.md | UI-T05 | 0/1 | backend/src/storage/service.js | Đang làm (0/1) |
 | REQ-UI-06 | User MUST hủy ca và kết thúc sớm được từ giao diện. | dashboard.md | UI-T06 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-07 | Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy … | dashboard.md | UI-T07 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-08 | Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu l… | dashboard.md | UI-T08 | 0/1 | — | Chưa code (0/1) |
