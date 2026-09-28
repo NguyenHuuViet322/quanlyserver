@@ -1,0 +1,26 @@
+{
+  "name": "vmu-gpu-scheduler",
+  "private": true,
+  "description": "Hệ thống đặt lịch GPU Server — Đại học Hàng hải Việt Nam",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:unit": "node --test --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/unit.xml \"backend/tests/unit/**/*.test.js\"",
+    "test:integration": "node --test --test-concurrency=1 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/integration.xml \"backend/tests/integration/**/*.test.js\"",
+    "test:system": "node --test --test-concurrency=1 --test-reporter=spec --test-reporter-destination=stdout --test-reporter=junit --test-reporter-destination=reports/system.xml \"backend/tests/system/**/*.test.js\"",
+    "test:e2e": "playwright test -c frontend/playwright.config.js",
+    "trace": "node tools/trace.js --write",
+    "trace:check": "node tools/trace.js --check",
+    "sync-ticks": "node tools/sync-ticks.js reports",
+    "db:test": "docker run -d --name vmu-pg-test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=vmu_test -p 55432:5432 postgres:16 -c timezone=UTC",
+    "test:unit:tz": "node tools/test-unit-tz.js"
+  },
+  "dependencies": {
+    "@fastify/cookie": "^11.1.2",
+    "fastify": "^5.12.5",
+    "jose": "^6.2.12",
+    "luxon": "^3.7.2",
+    "pg": "^8.23.0"
+  }
+}

@@ -1,0 +1,93 @@
+#!/bin/bash
+# Helper chạy bằng root cho backend VMU (docs/10-design/storage.md).
+# Cài: install -o root -g root -m 0755 deploy/vmu-provision /usr/local/sbin/vmu-provision
+# sudoers: vmu ALL=(root) NOPASSWD: /usr/local/sbin/vmu-provision
+# Chỉ nhận đúng các thao tác dưới đây, kiểm tra chặt tham số. Mật khẩu/SSH key đọc từ stdin.
+set -euo pipefail
+
+DATA=/data
+USERS_DIR=$DATA/users
+UID_MIN=2001
+RESERVED="root admin docker nginx postgres nobody daemon bin sys www-data ubuntu vmu"
+
+die() { echo "vmu-provision: $*" >&2; exit 2; }
+
+check_user() {
+  [[ "$1" =~ ^[a-z][a-z0-9._-]{0,31}$ ]] || die "username không hợp lệ: $1"
+  for r in $RESERVED; do [[ "$1" != "$r" ]] || die "username bị cấm: $1"; done
+}
+check_uid() {
+  [[ "$1" =~ ^[0-9]+$ ]] && (( $1 >= UID_MIN )) || die "uid không hợp lệ: $1"
+}
+check_bytes() {
+  [[ "$1" =~ ^[0-9]+$ ]] || die "dung lượng không hợp lệ: $1"
+}
+# Chỉ cho thao tác với user do hệ thống VMU tạo (uid >= UID_MIN)
+check_managed() {
+  local uid
+  uid=$(id -u "$1" 2>/dev/null) || die "không có user $1"
+  (( uid >= UID_MIN )) || die "từ chối thao tác với user hệ thống $1"
+}
+
+action=${1:-}; shift || true
+case "$action" in
+  create-user)
+    check_user "$1"; check_uid "$2"
+    useradd -u "$2" -U -m -s /bin/bash "$1"
+    ;;
+  delete-user)
+    check_user "$1"; check_managed "$1"
+    userdel -r "$1" 2>/dev/null || userdel "$1"
+    ;;
+  create-home)
+    check_user "$1"; check_uid "$2"
+    install -d -o "$2" -g "$2" -m 0700 "$USERS_DIR/$1"
+    ;;
+  remove-home)
+    check_user "$1"
+    rm -rf --one-file-system "${USERS_DIR:?}/$1"
+    ;;
+  set-quota)
+    check_user "$1"; check_uid "$2"; check_bytes "$3"; check_bytes "$4"
+    xfs_quota -x -c "project -s -p $USERS_DIR/$1 $2" "$DATA" >/dev/null
+    xfs_quota -x -c "limit -p bsoft=$(( $3 / 1024 ))k bhard=$(( $4 / 1024 ))k $2" "$DATA"
+    ;;
+  remove-quota)
+    check_uid "$1"
+    xfs_quota -x -c "limit -p bsoft=0 bhard=0 $1" "$DATA"
+    ;;
+  set-password)
+    check_user "$1"; check_managed "$1"
+    IFS= read -r password
+    [[ ${#password} -ge 12 ]] || die "mật khẩu quá ngắn"
+    printf '%s:%s\n' "$1" "$password" | chpasswd
+    if [[ "${2:-}" == expire ]]; then chage -d 0 "$1"; fi
+    ;;
+  lock-user)
+    check_user "$1"; check_managed "$1"
+    usermod -L -e 1 "$1"
+    pkill -KILL -u "$1" || true
+    ;;
+  unlock-user)
+    check_user "$1"; check_managed "$1"
+    usermod -U -e '' "$1"
+    ;;
+  set-keys)
+    check_user "$1"; check_managed "$1"
+    home=$(getent passwd "$1" | cut -d: -f6)
+    install -d -o "$1" -g "$1" -m 0700 "$home/.ssh"
+    tmp=$(mktemp)
+    grep -E '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)|sk-ssh-ed25519@openssh\.com|sk-ecdsa-sha2-nistp256@openssh\.com) [A-Za-z0-9+/]+=*( .*)?$' > "$tmp" || true
+    install -o "$1" -g "$1" -m 0600 "$tmp" "$home/.ssh/authorized_keys"
+    rm -f "$tmp"
+    ;;
+  purge-user)
+    check_user "$1"; check_uid "$2"
+    xfs_quota -x -c "limit -p bsoft=0 bhard=0 $2" "$DATA" || true
+    rm -rf --one-file-system "${USERS_DIR:?}/$1"
+    if id "$1" >/dev/null 2>&1; then check_managed "$1"; userdel -r "$1" 2>/dev/null || userdel "$1"; fi
+    ;;
+  *)
+    die "thao tác không hỗ trợ: $action"
+    ;;
+esac

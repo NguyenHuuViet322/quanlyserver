@@ -1,0 +1,5 @@
+node_modules/
+.env
+reports/*.xml
+test-results/
+playwright-report/
