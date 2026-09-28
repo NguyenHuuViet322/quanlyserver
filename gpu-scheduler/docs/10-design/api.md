@@ -47,6 +47,14 @@ Mỗi mã lỗi phải có ít nhất 1 test case gây ra nó (Gate Bước 3).
 
 Thứ tự kiểm tra khi đặt ca: `VALIDATION_ERROR` → `INVALID_TIME` → `IMAGE_NOT_ALLOWED` → `PORT_NOT_ALLOWED` → `USER_OVERLAP` → `GPU_BUSY` → `SLOT_FULL` → `GPU_QUOTA_EXCEEDED`.
 
+## Cấu hình công khai
+
+`GET /config` (không cần đăng nhập) — Dashboard đọc trước khi có phiên:
+```json
+{ "google_client_id": "…apps.googleusercontent.com", "ssh_host": "gpu.vimaru.edu.vn", "dashboard_url": "https://gpu.vimaru.edu.vn",
+  "timezone": "Asia/Ho_Chi_Minh", "slot_max_hours": 8, "booking_horizon_days": 7, "max_concurrent_sessions": 2 }
+```
+
 ## Xác thực — REQ-US-01..06
 
 ### `POST /auth/google`

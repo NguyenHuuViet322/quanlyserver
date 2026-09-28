@@ -14,7 +14,8 @@
     "trace:check": "node tools/trace.js --check",
     "sync-ticks": "node tools/sync-ticks.js reports",
     "db:test": "docker run -d --name vmu-pg-test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=vmu_test -p 55432:5432 postgres:16 -c timezone=UTC",
-    "test:unit:tz": "node tools/test-unit-tz.js"
+    "test:unit:tz": "node tools/test-unit-tz.js",
+    "start:dev": "node frontend/tests/e2e/server.js"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.2",
@@ -22,5 +23,8 @@
     "jose": "^6.2.12",
     "luxon": "^3.7.2",
     "pg": "^8.23.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0"
   }
 }

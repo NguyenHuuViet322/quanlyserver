@@ -12,17 +12,47 @@ const SID = 'sid';
 const NO_STORE = 'no-store';
 
 // Phân quyền theo route — REQ-US-06, REQ-US-14, REQ-US-15
-const PUBLIC_ROUTES = new Set(['POST /api/auth/google']);
+const PUBLIC_ROUTES = new Set(['POST /api/auth/google', 'GET /api/config']);
+
+// Phục vụ Dashboard tĩnh (frontend/src) khi có staticDir; production dùng Nginx — docs/10-design/deployment.md
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.json': 'application/json; charset=utf-8',
+};
+
+async function serveStatic(staticDir, urlPath, reply) {
+  const fs = require('node:fs/promises');
+  const path = require('node:path');
+  const root = path.resolve(staticDir);
+  let rel = decodeURIComponent(urlPath.split('?')[0]);
+  if (rel.endsWith('/')) rel += 'index.html';
+  let file = path.resolve(root, `.${rel}`);
+  if (!file.startsWith(root + path.sep)) return reply.code(404).type('text/plain').send('Not found');
+  // Đường dẫn không có phần mở rộng là route của SPA → index.html
+  if (!path.extname(file)) file = path.join(root, 'index.html');
+  try {
+    const body = await fs.readFile(file);
+    const type = MIME[path.extname(file)] || 'application/octet-stream';
+    return reply.type(type).header('cache-control', type.startsWith('text/html') ? 'no-cache' : 'public, max-age=300').send(body);
+  } catch {
+    return reply.code(404).type('text/plain').send('Not found');
+  }
+}
 const PENDING_ROUTES = new Set(['GET /api/me', 'POST /api/auth/logout']);
 
-async function buildApp({ db, system, docker, clock = { now: () => new Date() }, google, config = {}, logger = false }) {
+async function buildApp({ db, system, docker, clock = { now: () => new Date() }, google, config = {}, logger = false, staticDir = null }) {
   const cfg = loadConfig(config);
   const verifyIdToken = createGoogleVerifier(google);
   const ctx = { db, system, docker, clock, cfg };
 
   // Không log body hay header Cookie (REQ-US-10)
   // coerceTypes: false — "use_gpu": "true" (chuỗi) phải bị từ chối, không tự đổi sang boolean
-  const app = Fastify({ logger, disableRequestLogging: !logger, ajv: { customOptions: { coerceTypes: false } } });
+  const app = Fastify({ logger, ajv: { customOptions: { coerceTypes: false } } });
   await app.register(require('@fastify/cookie'));
   app.decorateRequest('user', null);
 
@@ -37,9 +67,21 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
     return reply.code(500).send({ error: { code: 'INTERNAL', message: 'Lỗi hệ thống', details: {} } });
   });
 
-  app.setNotFoundHandler(async () => {
+  app.setNotFoundHandler(async (req, reply) => {
+    if (staticDir && req.method === 'GET' && !req.url.startsWith('/api/')) return serveStatic(staticDir, req.url, reply);
     throw err.notFound();
   });
+
+  // Cấu hình công khai cho Dashboard (trang đăng nhập cần trước khi có phiên)
+  app.get('/api/config', async () => ({
+    google_client_id: google.clientId,
+    ssh_host: cfg.sshHost,
+    dashboard_url: cfg.dashboardUrl,
+    timezone: cfg.timezone,
+    slot_max_hours: cfg.slotMaxMs / 3600000,
+    booking_horizon_days: cfg.bookingHorizonMs / 86400000,
+    max_concurrent_sessions: cfg.maxConcurrentSessions,
+  }));
 
   app.addHook('onRequest', async (req) => {
     const path = req.url.split('?')[0];

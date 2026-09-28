@@ -37,6 +37,8 @@ const defaults = Object.freeze({
   logRetentionMs: 30 * DAY,
   deletedUserRetentionMs: 30 * DAY,
   sessionTtlMs: 30 * DAY,
+  sshHost: 'gpu.vimaru.edu.vn', // hiển thị hướng dẫn SSH trên Dashboard — biến môi trường SSH_HOST
+  dashboardUrl: 'https://gpu.vimaru.edu.vn', // DASHBOARD_URL
   passwordEncKey: null, // 32 byte hex, bắt buộc — biến môi trường PASSWORD_ENC_KEY
 });
 

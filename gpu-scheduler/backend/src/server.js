@@ -17,7 +17,13 @@ async function main() {
     system: createLinuxSystem(),
     docker: createDocker(),
     google: { clientId: required('GOOGLE_CLIENT_ID') },
-    config: { passwordEncKey: required('PASSWORD_ENC_KEY') },
+    config: {
+      passwordEncKey: required('PASSWORD_ENC_KEY'),
+      ...(process.env.SSH_HOST && { sshHost: process.env.SSH_HOST }),
+      ...(process.env.DASHBOARD_URL && { dashboardUrl: process.env.DASHBOARD_URL }),
+    },
+    // Production: Nginx phục vụ frontend/src; đặt STATIC_DIR để backend tự phục vụ (chạy thử)
+    staticDir: process.env.STATIC_DIR || null,
     logger: { level: process.env.LOG_LEVEL || 'info' },
   });
   await app.listen({ host: process.env.HOST || '127.0.0.1', port: Number(process.env.PORT || 3000) });

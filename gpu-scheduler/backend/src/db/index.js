@@ -6,10 +6,9 @@ const { Pool, types } = require('pg');
 types.setTypeParser(20, Number);
 
 function createDb(connectionString) {
-  const pool = new Pool({ connectionString });
-  // REQ-DP-06: phiên CSDL luôn ở UTC, không phụ thuộc cấu hình server
-  pool.on('connect', (client) => client.query("SET TIME ZONE 'UTC'"));
-  return pool;
+  // REQ-DP-06: phiên CSDL luôn ở UTC, không phụ thuộc cấu hình server.
+  // Đặt qua tham số kết nối (không chạy SET sau khi kết nối, tránh chạy chồng với truy vấn đầu tiên)
+  return new Pool({ connectionString, options: '-c timezone=UTC' });
 }
 
 async function migrate(db) {

@@ -19,7 +19,7 @@ Cả hai service chạy bằng user hệ thống `vmu` (thuộc nhóm `docker`),
 ## Nginx — REQ-DP-02
 
 - `:80` → `301` sang `https://`.
-- `:443` TLS, proxy `/api` và `/` tới `127.0.0.1:3000`.
+- `:443` TLS, phục vụ tĩnh `frontend/src/` (SPA: `try_files $uri /index.html`), proxy `/api` tới `127.0.0.1:3000`.
 - `access_log` không ghi body; không log header `Cookie`. Các route `/api/me/password*` tắt `access_log` hoàn toàn (REQ-US-10).
 
 ## Bộ nhớ host — REQ-DP-03

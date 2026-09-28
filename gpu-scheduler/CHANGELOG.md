@@ -15,8 +15,11 @@
 - M5 Lưu trữ: đọc `xfs_quota` mỗi 5 phút, trường `storage` trong `GET /me`, cảnh báo vượt soft quota kèm hạn dọn dẹp.
 - M6 Giám sát: `GET /bookings/:id/logs`, `GET /bookings/:id/metrics` (`docker stats`, `nvidia-smi`), `GET /admin/audit`, dọn log quá 30 ngày trong lệnh `purge`.
 - Thông báo: `GET /notifications` (`?unread=1`, `?limit`), `POST /notifications/:id/read`, `POST /notifications/read-all`.
+- M7 Dashboard (`frontend/src/`): đăng nhập Google, chờ duyệt, mật khẩu lần đầu, tổng quan, lịch 8 ngày × 24 giờ theo giờ VN, form đặt ca theo giờ tròn, ca của tôi (hủy / kết thúc sớm / khởi động lại / log / số liệu), tài khoản & SSH key, quản trị (tài khoản, image, nhật ký), chuông thông báo. Màu theo logo VMU. Test e2e Playwright (Edge trên Windows).
+- `GET /api/config`; backend phục vụ file tĩnh khi có `STATIC_DIR`.
 
 ### Thay đổi
+- Kết nối PostgreSQL đặt `timezone=UTC` qua tham số kết nối.
 - Cổng container chỉ mở trên `127.0.0.1`, truy cập qua SSH tunnel.
 - Cảnh báo hết ca in ra terminal SSH trong container.
 - `SESSION_TTL` = 30 ngày.
