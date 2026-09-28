@@ -2,27 +2,27 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **68** · Test case: **125** · Đã tick: **0/125**
+- REQ: **68** · Test case: **125** · Đã tick: **24/125**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
 |---|---|---|---|---|---|---|
-| REQ-US-01 | Xác thực ID token Google | api.md | US-T01, US-T06, US-T07 | 3/3 | backend/src/auth/google.js | Đang làm (0/3) |
-| REQ-US-02 | Email đã xác minh | api.md | US-T05 | 1/1 | backend/src/auth/google.js | Đang làm (0/1) |
-| REQ-US-03 | Giới hạn tên miền | api.md | US-T01, US-T02, US-T03, US-T04, US-T07 | 5/5 | backend/src/auth/google.js | Đang làm (0/5) |
-| REQ-US-04 | Thông tin hồ sơ | api.md | US-T08 | 1/1 | backend/src/users/service.js | Đang làm (0/1) |
-| REQ-US-05 | Tên đăng nhập | api.md, database.md | US-T09, US-T10 | 2/2 | backend/src/users/service.js, backend/src/users/username.js | Đang làm (0/2) |
-| REQ-US-06 | Tài khoản chờ duyệt | api.md | US-T11 | 1/1 | backend/src/app.js, backend/src/users/service.js | Đang làm (0/1) |
-| REQ-US-07 | Cấp phát khi duyệt | api.md, storage.md | US-T12, US-T15 | 2/2 | backend/src/system/linux.js | Đang làm (0/2) |
-| REQ-US-08 | Giới hạn số tài khoản | api.md | US-T14 | 1/1 | — | Chưa code (0/1) |
-| REQ-US-09 | Dải cổng | api.md, database.md | US-T13, US-T29 | 2/2 | backend/src/users/ports.js | Đang làm (0/2) |
-| REQ-US-10 | Mật khẩu SSH ban đầu | api.md, database.md, deployment.md | US-T16, US-T17, US-T18, US-T19, US-T20 | 4/5 | backend/src/app.js, backend/src/users/password.js, backend/src/users/service.js | Đang làm (0/5) |
+| REQ-US-01 | Xác thực ID token Google | api.md | US-T01 ✅, US-T06 ✅, US-T07 ✅ | 3/3 | backend/src/auth/google.js | ✅ Xong |
+| REQ-US-02 | Email đã xác minh | api.md | US-T05 ✅ | 1/1 | backend/src/auth/google.js | ✅ Xong |
+| REQ-US-03 | Giới hạn tên miền | api.md | US-T01 ✅, US-T02 ✅, US-T03 ✅, US-T04 ✅, US-T07 ✅ | 5/5 | backend/src/auth/google.js | ✅ Xong |
+| REQ-US-04 | Thông tin hồ sơ | api.md | US-T08 ✅ | 1/1 | backend/src/users/service.js | ✅ Xong |
+| REQ-US-05 | Tên đăng nhập | api.md, database.md | US-T09 ✅, US-T10 ✅ | 2/2 | backend/src/users/service.js, backend/src/users/username.js | ✅ Xong |
+| REQ-US-06 | Tài khoản chờ duyệt | api.md | US-T11 ✅ | 1/1 | backend/src/app.js, backend/src/users/service.js | ✅ Xong |
+| REQ-US-07 | Cấp phát khi duyệt | api.md, storage.md | US-T12, US-T15 ✅ | 2/2 | backend/src/system/linux.js | Đang làm (1/2) |
+| REQ-US-08 | Giới hạn số tài khoản | api.md | US-T14 ✅ | 1/1 | — | ✅ Xong |
+| REQ-US-09 | Dải cổng | api.md, database.md | US-T13 ✅, US-T29 ✅ | 2/2 | backend/src/users/ports.js | ✅ Xong |
+| REQ-US-10 | Mật khẩu SSH ban đầu | api.md, database.md, deployment.md | US-T16 ✅, US-T17 ✅, US-T18 ✅, US-T19, US-T20 ✅ | 4/5 | backend/src/app.js, backend/src/users/password.js, backend/src/users/service.js | Đang làm (4/5) |
 | REQ-US-11 | Bắt đổi mật khẩu lần đầu | api.md | US-T21 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
 | REQ-US-12 | Cấp lại mật khẩu | api.md, dashboard.md | US-T22 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
-| REQ-US-13 | SSH key | api.md, dashboard.md | US-T23, US-T28 | 1/2 | backend/src/users/service.js, backend/src/users/ssh-key.js | Đang làm (0/2) |
-| REQ-US-14 | Phân quyền | api.md | US-T24, US-T27, US-T30 | 3/3 | backend/src/app.js | Đang làm (0/3) |
+| REQ-US-13 | SSH key | api.md, dashboard.md | US-T23, US-T28 ✅ | 1/2 | backend/src/users/service.js, backend/src/users/ssh-key.js | Đang làm (1/2) |
+| REQ-US-14 | Phân quyền | api.md | US-T24 ✅, US-T27 ✅, US-T30 ✅ | 3/3 | backend/src/app.js | ✅ Xong |
 | REQ-US-15 | Khóa tài khoản | api.md | US-T25 | 1/1 | backend/src/app.js, backend/src/users/service.js | Đang làm (0/1) |
-| REQ-US-16 | Xóa tài khoản | api.md, database.md, storage.md | US-T26, US-T29 | 2/2 | backend/src/cli.js, backend/src/users/service.js | Đang làm (0/2) |
+| REQ-US-16 | Xóa tài khoản | api.md, database.md, storage.md | US-T26 ✅, US-T29 ✅ | 2/2 | backend/src/cli.js, backend/src/users/service.js | ✅ Xong |
 | REQ-BK-01 | Hợp lệ thời gian | api.md, database.md, time.md | BK-T01, BK-T02, BK-T03, BK-T04, BK-T05, BK-T06, BK-T24, BK-T39, BK-T40 | 0/9 | — | Chưa code (0/9) |
 | REQ-BK-02 | Tối đa 2 phiên đồng thời | api.md, database.md | BK-T07, BK-T08, BK-T10, BK-T11, BK-T12, BK-T13 | 0/6 | — | Chưa code (0/6) |
 | REQ-BK-03 | Tối đa 1 phiên GPU | api.md | BK-T08, BK-T09, BK-T13, BK-T29 | 0/4 | — | Chưa code (0/4) |
