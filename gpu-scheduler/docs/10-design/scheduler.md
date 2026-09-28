@@ -4,9 +4,9 @@ Tiến trình Node.js riêng (`vmu-scheduler.service`), tick mỗi `CFG.SCHEDULE
 
 ## Đồng hồ — REQ-SC-08
 
-- `node-cron` chỉ dùng làm nhịp `* * * * *` (mỗi phút). Việc ca nào đến giờ được quyết định bằng truy vấn so sánh thời điểm: `start_at <= now()`, **không** tạo một cron job theo giờ địa phương cho từng ca.
-- Mọi so sánh dùng `now()` của PostgreSQL (UTC) trong cùng transaction, tránh lệch giữa đồng hồ Node.js và CSDL.
-- Job theo giờ trong ngày khai báo múi giờ tường minh: `cron.schedule('0 3 * * *', purge, { timezone: 'Asia/Ho_Chi_Minh' })`.
+- Nhịp tick là `setInterval(SCHEDULER_TICK)`. Việc ca nào đến giờ được quyết định bằng truy vấn so sánh thời điểm (`start_at <= now`), **không** tạo cron job theo giờ địa phương cho từng ca.
+- `now` lấy một lần đầu mỗi tick (đồng hồ hệ thống, đồng bộ NTP — REQ-DP-06) và truyền vào mọi truy vấn dưới dạng `timestamptz`.
+- Việc theo giờ trong ngày (dọn dẹp 03:00) chạy bằng systemd timer có múi giờ tường minh: `OnCalendar=*-*-* 03:00:00 Asia/Ho_Chi_Minh`.
 - Nội dung cảnh báo hiển thị giờ Việt Nam: "Ca của bạn kết thúc lúc 11:00 (GMT+7)".
 - Khi đồng hồ server bị chỉnh lùi hoặc tiến (NTP), tick kế tiếp vẫn đúng vì chỉ so sánh thời điểm tuyệt đối.
 
@@ -41,6 +41,8 @@ Ca `exited` vẫn giữ chỗ trong lịch cho tới `end`.
 4. **Dừng:** ca `running`/`exited` có `end_at ≤ now` → `stopping` → `docker stop -t STOP_TIMEOUT` → lưu log vào `/var/log/vmu/bookings/<id>.log` → `docker rm` → `completed`, ghi `actual_end_at`. **REQ-SC-03**
 5. **Đồng bộ trạng thái:** container của ca `running` đã thoát → `exited`, `exit_reason = OOM` nếu `State.OOMKilled = true`, ngược lại `EXITED`. Không khởi động lại. **REQ-SC-07, MN-04**
 6. Nhả khóa.
+
+Container của ca `exited` được giữ lại (để xem log, khởi động lại); khi khởi động lại hoặc hết ca thì lưu log rồi xóa. Mọi cập nhật trạng thái dùng `WHERE status = <trạng thái mong đợi>` để không ghi đè thao tác đồng thời từ API.
 
 Tên container luôn là `vmu-bk-<booking_id>`. `docker run` thất bại vì trùng tên nghĩa là container đã tồn tại; khi đó kiểm tra trạng thái container và không tạo mới.
 

@@ -31,6 +31,8 @@ const defaults = Object.freeze({
   userQuotaHardBytes: 100 * GiB,
   userQuotaGraceMs: 7 * DAY,
   containerWritableLayer: '20G',
+  dataRoot: '/data', // /data/users/<username>, /data/shared
+  logDir: '/var/log/vmu/bookings', // log container sau khi ca kết thúc
   imageRetentionMs: 30 * DAY,
   logRetentionMs: 30 * DAY,
   deletedUserRetentionMs: 30 * DAY,
