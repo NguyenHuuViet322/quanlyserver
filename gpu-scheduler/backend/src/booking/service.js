@@ -1,12 +1,10 @@
 // M2 — Đặt lịch. ctx = { db, system, clock, cfg }
-const { DateTime } = require('luxon');
 const { tx } = require('../db');
 const { ApiError, err } = require('../errors');
 const { toVnIso, weekStartOf, addWeek, parseDateOrInstant } = require('../time');
-const { portRange } = require('../users/ports');
 const { validateBookingTimes } = require('./rules');
 const { findConflict, ACTIVE } = require('./conflict');
-const { checkGpuQuota, usedInWeek } = require('./quota');
+const { checkGpuQuota } = require('./quota');
 
 const BOOKING_LOCK = 2001; // khóa advisory tuần tự hóa mọi thay đổi lịch — REQ-BK-06
 const ACTIVE_LIST = [...ACTIVE];
@@ -45,8 +43,6 @@ function toApi(row) {
     start: toVnIso(ms(row.start_at)),
     end: toVnIso(ms(row.end_at)),
     use_gpu: row.use_gpu,
-    image: row.image,
-    ports: row.ports,
     status: row.status,
     container_name: `vmu-bk-${row.id}`,
     exit_reason: row.exit_reason,
@@ -72,14 +68,6 @@ async function createBooking(ctx, user, body) {
   const now = ctx.clock.now().getTime();
   const { start, end } = validateBookingTimes(body.start, body.end, now, cfg);
 
-  const img = await ctx.db.query('SELECT 1 FROM images WHERE name = $1 AND enabled', [body.image]);
-  if (!img.rowCount) throw new ApiError(400, 'IMAGE_NOT_ALLOWED', 'Image không nằm trong danh sách cho phép', { image: body.image });
-
-  const range = portRange(user.slot_index, cfg);
-  const ports = [...new Set(body.ports || [])];
-  const outside = ports.filter((p) => !range || p < range.from || p > range.to);
-  if (outside.length) throw new ApiError(400, 'PORT_NOT_ALLOWED', 'Cổng phải nằm trong dải của bạn', { ports: outside, allowed: range });
-
   const candidate = { userId: user.id, start, end, useGpu: body.use_gpu };
   return tx(ctx.db, async (q) => {
     await q.query('SELECT pg_advisory_xact_lock($1)', [BOOKING_LOCK]);
@@ -97,8 +85,8 @@ async function createBooking(ctx, user, body) {
     }
 
     const inserted = await q.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, image, ports) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [user.id, new Date(start), new Date(end), candidate.useGpu, body.image, ports],
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu) VALUES ($1, $2, $3, $4) RETURNING *`,
+      [user.id, new Date(start), new Date(end), candidate.useGpu],
     );
     const row = { ...inserted.rows[0], username: user.username };
     await q.query('INSERT INTO audit_log (actor_id, action, target, details) VALUES ($1, $2, $3, $4)',
@@ -174,65 +162,25 @@ async function listBookings(ctx, user, query) {
   return rows.map(toApi);
 }
 
-// Lịch theo giờ — REQ-UI-02: các đoạn liên tiếp có cùng số phiên và cùng trạng thái GPU
-async function calendar(ctx, query) {
+// Lịch — REQ-UI-02: ca hiệu lực của mọi người trong khoảng [from, to), kèm ai đang dùng
+async function calendar(ctx, user, query) {
   const tz = ctx.cfg.timezone;
   const from = parseDateOrInstant(query.from, tz);
   const to = parseDateOrInstant(query.to, tz);
   if (from === null || to === null || to <= from) throw err.validation('Cần from < to (ngày YYYY-MM-DD hoặc thời điểm có múi giờ)');
-  if (to - from > (ctx.cfg.bookingHorizonMs + 24 * HOUR)) throw err.validation('Khoảng thời gian quá dài');
+  if (to - from > ctx.cfg.bookingHorizonMs + 24 * HOUR) throw err.validation('Khoảng thời gian tối đa 8 ngày');
   const { rows } = await ctx.db.query(
-    'SELECT * FROM bookings WHERE status = ANY($1::booking_status[]) AND start_at < $3 AND end_at > $2',
+    `${SELECT_BOOKING} WHERE b.status = ANY($1::booking_status[]) AND b.start_at < $3 AND b.end_at > $2 ORDER BY b.start_at, b.id`,
     [ACTIVE_LIST, new Date(from), new Date(to)],
   );
-  const bookings = rows.map(toRule);
-  const segments = [];
-  let h = DateTime.fromMillis(from, { zone: tz }).startOf('hour');
-  while (h.toMillis() < to) {
-    const s = h.toMillis();
-    const next = h.plus({ hours: 1 });
-    const e = Math.min(next.toMillis(), to);
-    const here = bookings.filter((b) => b.start < e && s < b.end);
-    const seg = { sessions: here.length, gpu_taken: here.some((b) => b.useGpu) };
-    const last = segments[segments.length - 1];
-    if (last && last.sessions === seg.sessions && last.gpu_taken === seg.gpu_taken) last.endMs = e;
-    else segments.push({ startMs: s, endMs: e, ...seg });
-    h = next;
-  }
-  return segments.map((x) => ({ start: toVnIso(x.startMs), end: toVnIso(x.endMs), sessions: x.sessions, gpu_taken: x.gpu_taken }));
-}
-
-// REQ-UI-04: giờ GPU tuần hiện tại
-async function gpuQuotaOf(ctx, user) {
-  const tz = ctx.cfg.timezone;
-  const week = weekStartOf(ctx.clock.now().getTime(), tz);
-  const used = usedInWeek(await userGpuBookings(ctx.db, user.id, week, addWeek(week, tz)), week, tz);
-  const round = (x) => Math.round((x / HOUR) * 100) / 100;
-  return {
-    week_start: toVnIso(week),
-    limit_hours: round(ctx.cfg.gpuWeeklyQuotaMs),
-    used_hours: round(used),
-    remaining_hours: round(Math.max(0, ctx.cfg.gpuWeeklyQuotaMs - used)),
-  };
-}
-
-// --- Image cho phép — REQ-BK-10, REQ-CT-06 ---
-async function listImages(ctx, { all = false } = {}) {
-  const { rows } = await ctx.db.query(`SELECT name, enabled FROM images ${all ? '' : 'WHERE enabled'} ORDER BY name`);
-  return all ? rows : rows.map((r) => ({ name: r.name }));
-}
-
-async function setImages(ctx, actor, names) {
-  return tx(ctx.db, async (q) => {
-    for (const name of names) {
-      await q.query('INSERT INTO images (name, enabled) VALUES ($1, true) ON CONFLICT (name) DO UPDATE SET enabled = true', [name]);
-    }
-    await q.query('UPDATE images SET enabled = false WHERE NOT (name = ANY($1::text[]))', [names]);
-    await q.query('INSERT INTO audit_log (actor_id, action, target, details) VALUES ($1, $2, $3, $4)',
-      [actor.id, 'images.set', 'images', { names }]);
-    const { rows } = await q.query('SELECT name, enabled FROM images ORDER BY name');
-    return rows;
-  });
+  return rows.map((r) => ({
+    id: r.id,
+    start: toVnIso(ms(r.start_at)),
+    end: toVnIso(ms(r.end_at)),
+    username: r.username,
+    use_gpu: r.use_gpu,
+    mine: r.user_id === user.id,
+  }));
 }
 
 module.exports = {
@@ -243,7 +191,4 @@ module.exports = {
   getBooking,
   listBookings,
   calendar,
-  gpuQuotaOf,
-  listImages,
-  setImages,
 };

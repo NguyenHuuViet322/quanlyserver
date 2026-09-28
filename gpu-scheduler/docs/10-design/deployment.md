@@ -36,7 +36,11 @@ Tổng giới hạn RAM container = `MAX_CONCURRENT_SESSIONS × SESSION_MEMORY` 
 
 ## Dọn image — REQ-DP-04
 
-Chạy hằng ngày: xóa image có `last_used_at < now − IMAGE_RETENTION` và không được ca hiệu lực nào tham chiếu.
+Chạy hằng ngày: `docker image prune -a --filter until=<IMAGE_RETENTION>` bỏ qua `BASE_IMAGE` hiện hành (image đang có container chạy cũng không bị xóa). Image chung build từ [`deploy/base-image/`](../../deploy/base-image/Dockerfile), xem [container.md](container.md).
+
+## Mạng container — REQ-CT-05
+
+Một lần khi cài: `docker network create --driver bridge -o com.docker.network.bridge.enable_icc=false vmu-net`. PostgreSQL và backend chỉ nghe `127.0.0.1`.
 
 ## Tài liệu người dùng — REQ-DP-05
 

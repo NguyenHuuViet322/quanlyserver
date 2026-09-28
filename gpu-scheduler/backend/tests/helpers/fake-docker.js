@@ -62,8 +62,8 @@ function createFakeDocker({ runDelayMs = 0 } = {}) {
       calls.push(['logs', name]);
       return containers.get(name)?.logs ?? '';
     },
-    async exec(name, cmd) {
-      calls.push(['exec', name, cmd]);
+    async exec(name, cmd, opts = {}) {
+      calls.push(['exec', name, cmd, opts]);
       const c = containers.get(name);
       if (c) c.logs += `${cmd.join(' ')}\n`;
     },

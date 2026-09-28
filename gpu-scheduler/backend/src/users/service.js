@@ -4,9 +4,7 @@ const { tx } = require('../db');
 const { err } = require('../errors');
 const { deriveUsername, usernameProblem } = require('./username');
 const { generatePassword, encryptPassword, decryptPassword } = require('./password');
-const { portRange } = require('./ports');
 const { parseSshKey } = require('./ssh-key');
-const { renderSshdUsers } = require('../system/sshd');
 
 const ADMIN_LOCK = 1001; // khóa advisory cho các thao tác cấp phát tài khoản
 
@@ -20,7 +18,6 @@ function publicUser(row, cfg) {
     role: row.role,
     status: row.status,
     uid: row.linux_uid,
-    ports: portRange(row.slot_index, cfg),
   };
 }
 
@@ -65,13 +62,7 @@ async function deleteSession(ctx, token) {
   if (token) await ctx.db.query('DELETE FROM sessions WHERE id_hash = $1', [hashToken(token)]);
 }
 
-// Ghi lại cấu hình PermitOpen theo CSDL hiện tại (trong transaction đang mở) — REQ-CT-10
-async function syncSshd(ctx, q) {
-  const { rows } = await q.query(`SELECT username, status, slot_index FROM users ORDER BY slot_index NULLS LAST, id`);
-  await ctx.system.writeSshdUsers({ content: renderSshdUsers(rows, ctx.cfg) });
-}
-
-// --- Duyệt & cấp phát — REQ-US-05, 07, 08, 09 ---
+// --- Duyệt & cấp phát — REQ-US-05, 07, 08 ---
 
 async function listUsers(ctx, status) {
   const { rows } = status
@@ -111,11 +102,7 @@ async function approveUser(ctx, actorId, userId) {
     const count = (await q.query(`SELECT count(*)::int AS n FROM users WHERE status IN ('active', 'locked')`)).rows[0].n;
     if (count >= cfg.maxUsers) throw err.userLimitReached(cfg.maxUsers);
 
-    // Chỉ số cổng nhỏ nhất còn trống; UID luôn tăng, không tái sử dụng (kể cả user đã xóa)
-    const slot = (await q.query(
-      `SELECT min(i)::int AS s FROM generate_series(1, $1::int) i WHERE i NOT IN (SELECT slot_index FROM users WHERE slot_index IS NOT NULL)`,
-      [cfg.maxUsers],
-    )).rows[0].s;
+    // UID luôn tăng, không tái sử dụng kể cả của user đã xóa (REQ-US-16)
     const uid = (await q.query('SELECT coalesce(max(linux_uid) + 1, $1::int)::int AS uid FROM users', [cfg.uidBase])).rows[0].uid;
     const username = user.username;
     const password = generatePassword(cfg.passwordLength);
@@ -137,12 +124,11 @@ async function approveUser(ctx, actorId, userId) {
 
     try {
       const updated = await q.query(
-        `UPDATE users SET status = 'active', linux_uid = $2, slot_index = $3, pending_password_enc = $4, approved_at = $5
+        `UPDATE users SET status = 'active', linux_uid = $2, pending_password_enc = $3, approved_at = $4
          WHERE id = $1 RETURNING *`,
-        [userId, uid, slot, encryptPassword(password, cfg.passwordEncKey), ctx.clock.now()],
+        [userId, uid, encryptPassword(password, cfg.passwordEncKey), ctx.clock.now()],
       );
-      await audit(q, actorId, 'user.approve', `user:${userId}`, { username, uid, slot });
-      await syncSshd(ctx, q);
+      await audit(q, actorId, 'user.approve', `user:${userId}`, { username, uid });
       return publicUser(updated.rows[0], cfg);
     } catch (e) {
       for (const revert of undo.reverse()) {
@@ -185,7 +171,7 @@ async function unlockUser(ctx, actorId, userId) {
   });
 }
 
-// REQ-US-16: khóa, giải phóng chỉ số cổng, giữ dữ liệu tới purge_after
+// REQ-US-16: khóa, giữ dữ liệu tới purge_after, UID không cấp lại
 async function deleteUser(ctx, actorId, userId) {
   return tx(ctx.db, async (q) => {
     await q.query('SELECT pg_advisory_xact_lock($1)', [ADMIN_LOCK]);
@@ -195,13 +181,12 @@ async function deleteUser(ctx, actorId, userId) {
     if (user.linux_uid) await ctx.system.lockUser({ username: user.username });
     const now = ctx.clock.now();
     const updated = await q.query(
-      `UPDATE users SET status = 'deleted', slot_index = NULL, pending_password_enc = NULL, deleted_at = $2, purge_after = $3
+      `UPDATE users SET status = 'deleted', pending_password_enc = NULL, deleted_at = $2, purge_after = $3
        WHERE id = $1 RETURNING *`,
       [userId, now, new Date(now.getTime() + ctx.cfg.deletedUserRetentionMs)],
     );
     await stopBookingsOf(q, userId);
     await audit(q, actorId, 'user.delete', `user:${userId}`);
-    await syncSshd(ctx, q);
     return publicUser(updated.rows[0], ctx.cfg);
   });
 }

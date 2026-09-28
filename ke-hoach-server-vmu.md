@@ -9,7 +9,7 @@
 Hệ thống server được triển khai nhằm khai thác tối đa hiệu năng GPU và cách ly môi trường làm việc giữa khoảng **30 người dùng**.
 
 - **Tối ưu GPU:** RTX 5090 được cấp phát theo lịch đăng ký, tại mỗi thời điểm chỉ một phiên được dùng GPU.
-- **Cách ly:** Mỗi người dùng có container, thư mục dữ liệu, hạn mức lưu trữ và dải cổng riêng.
+- **Cách ly:** Mỗi người dùng có container, thư mục dữ liệu và hạn mức lưu trữ riêng; container không mở cổng ra ngoài và không nói chuyện được với nhau.
 - **Chia sẻ công bằng:** Tối đa 2 phiên chạy đồng thời, có hạn mức giờ GPU theo tuần.
 
 ## 2. Cấu hình phần cứng
@@ -43,10 +43,10 @@ Tên đăng nhập (SSH, tài khoản Linux) = **phần trước `@vimaru.edu.vn
 
 ### 3.3. Tạo tài khoản lần đầu
 
-Server chỉ phục vụ ~30 người (quota và dải cổng tính theo con số này) nên tài khoản mới cần duyệt:
+Server chỉ phục vụ ~30 người (quota tính theo con số này) nên tài khoản mới cần duyệt:
 
 1. Đăng nhập Google lần đầu → lưu thông tin, trạng thái `pending`.
-2. Quản trị viên duyệt → tự động cấp phát: tài khoản Linux với UID riêng, thư mục `/data/users/<username>` + quota 80/100 GiB, dải cổng tiếp theo còn trống, mật khẩu ngẫu nhiên.
+2. Quản trị viên duyệt → tự động cấp phát: tài khoản Linux với UID riêng, thư mục `/data/users/<username>` + quota 80/100 GiB, mật khẩu ngẫu nhiên.
 3. Lần đăng nhập Dashboard tiếp theo → hiển thị mật khẩu.
 
 ### 3.4. Mật khẩu SSH lần đầu
@@ -147,32 +147,22 @@ Chính sách quota mỗi người:
 Ổ NVMe 1TB:
 
 - Writable layer mỗi container giới hạn 20GB (`--storage-opt size=20G`, yêu cầu `/var/lib/docker` trên XFS bật `pquota`). Dữ liệu cần giữ phải nằm trong `/workspace`.
-- Image được build từ base image đã duyệt (CUDA, PyTorch); image không dùng quá 30 ngày bị dọn định kỳ.
+- Mọi container dùng chung **một image** (Ubuntu + CUDA + conda + công cụ thường dùng), admin cập nhật; bản cũ không dùng quá 30 ngày bị dọn định kỳ.
 - Nếu ổ Data là HDD, cân nhắc chép dataset sang vùng tạm trên NVMe trong ca để tăng tốc đọc.
 
 > Server **không sao lưu** dữ liệu người dùng. Người dùng tự sao lưu code và kết quả quan trọng.
 
-### 5.3. Cấp phát cổng mạng
+### 5.3. Môi trường làm việc và cài phần mềm
 
-Mỗi người có 100 cổng cho Jupyter, TensorBoard, API thử nghiệm. Người dùng được duyệt thứ `i` (1..30):
-
-```
-[10000 + 100·(i−1),  10000 + 100·(i−1) + 99]
-```
-
-| Người dùng | Dải port      |
-|------------|---------------|
-| User 01    | 10000 – 10099 |
-| User 02    | 10100 – 10199 |
-| …          | …             |
-| User 30    | 12900 – 12999 |
-
-Container chỉ được publish cổng trong dải của chính người dùng đó, và chỉ trên `127.0.0.1`. Người dùng mở cổng qua SSH tunnel, ví dụ `ssh -L 10001:localhost:10001 vietnh@<server>` rồi mở `http://localhost:10001`; không tunnel được tới cổng của người khác.
+- Người dùng không chọn image: mọi ca dùng image chung. Muốn thêm phần mềm cần quyền root (`apt`), người dùng nhờ admin thêm vào image chung.
+- Không có quyền root trong container, nhưng `HOME=/workspace` nên mọi thứ tự cài đều còn ở ca sau: `pip`, `conda` (kể cả `conda-forge`: ffmpeg, gcc, cmake, nodejs…), công cụ cài vào `~/.local`, biên dịch từ mã nguồn với `--prefix=$HOME/.local`.
+- Container không mở cổng nào ra máy chủ hay mạng trường. Jupyter, TensorBoard… được dùng qua SSH thẳng vào container (mục 5.4): VS Code tự chuyển tiếp cổng, hoặc `ssh -L 8888:localhost:8888 vmu`.
 
 ### 5.4. Truy cập bằng SSH
 
 - Người dùng đăng nhập `ssh <username>@<server>`, trong đó `<username>` là phần trước `@vimaru.edu.vn`, mật khẩu là mật khẩu ngẫu nhiên nhận trên Dashboard (bắt đổi ở lần đầu), hoặc SSH key.
-- **Có ca đang chạy:** SSH tự đưa người dùng vào container của chính họ, tại `/workspace`. Lệnh kèm theo (`ssh user@server nvidia-smi`, VS Code Remote-SSH) cũng chạy trong container.
+- **Có ca đang chạy:** SSH tự đưa người dùng vào container của chính họ, tại `/workspace`. Lệnh kèm theo (`ssh user@server nvidia-smi`) cũng chạy trong container.
+- **VS Code từ máy cá nhân:** thêm SSH key trên Dashboard, dán vào `~/.ssh/config` đoạn cấu hình Dashboard cung cấp (`Host vmu` … `ProxyCommand ssh <username>@<server> vmu-connect`), rồi **Remote-SSH: Connect to Host → vmu**. Kết nối đi thẳng vào sshd chạy trong container của chính người dùng (chỉ nhận key), nên terminal, extension, notebook và chuyển tiếp cổng đều chạy trong container.
 - **Không có ca:** không có shell; hệ thống báo "Bạn chưa có ca đang chạy". Riêng chép file (`sftp`, `scp`, `rsync`) vẫn dùng được mọi lúc, vào `/data/users/<username>`.
 - Người dùng không bao giờ có shell trên máy chủ và không vào được container hay thư mục của người khác.
 
@@ -190,7 +180,7 @@ Node.js + `node-cron`, chu kỳ 60 giây:
 
 ### Bước 1: Người dùng đăng ký ca
 
-Thông tin: thời gian bắt đầu/kết thúc, **có dùng GPU hay không**, image (từ danh sách cho phép).
+Thông tin: thời gian bắt đầu/kết thúc, **có dùng GPU hay không**.
 
 Kiểm tra trong một transaction có khóa:
 
@@ -208,11 +198,11 @@ Mỗi 60 giây: tìm ca đến giờ chưa có container, ca sắp hết giờ (
 
 ### Bước 3: Kích hoạt container
 
-1. Tạo container từ image đã chọn, chạy với UID người dùng (không root, không `--privileged`).
+1. Tạo container từ image chung, chạy với UID người dùng (không root, không `--privileged`), trong mạng riêng không nói chuyện được với container khác.
 2. Mount `/data/users/<username>` → `/workspace`, `/data/shared` → `/shared` (read-only).
 3. Ca có GPU: gắn GPU qua NVIDIA Container Toolkit. Không GPU: không gắn.
 4. Giới hạn CPU, RAM 28GB không swap, shm 8GB.
-5. Gán cổng trong dải của người dùng.
+5. Không mở cổng ra ngoài; dịch vụ trong container dùng qua SSH thẳng vào container.
 
 ### Bước 4: Giám sát
 
@@ -236,7 +226,7 @@ flowchart TD
     C --> D[Scheduler kiểm tra mỗi 60 giây]
     D --> E{Đến giờ bắt đầu?}
     E -- Chưa --> D
-    E -- Rồi --> F[Tạo container: mount /workspace, RAM 28GB,<br/>gắn GPU nếu có đăng ký, gán port]
+    E -- Rồi --> F[Tạo container: mount /workspace, RAM 28GB,<br/>gắn GPU nếu có đăng ký]
     F --> G[Giám sát CPU/RAM/GPU, ghi log<br/>cảnh báo 15 phút trước khi hết ca]
     G --> H[Hết ca: docker stop, thu hồi GPU/RAM, lưu log]
     H --> I([Ca completed])

@@ -32,7 +32,6 @@ function createLinuxSystem() {
     unlockUser: ({ username }) => run('unlock-user', [username]),
     setAuthorizedKeys: ({ username, keys }) => run('set-keys', [username], keys.map((k) => `${k}\n`).join('')),
     readQuotas: async () => parseQuotaReport(await run('report-quota')),
-    writeSshdUsers: ({ content }) => run('write-sshd-users', [], content),
     purgeUser: ({ username, uid }) => run('purge-user', [username, uid]),
   };
 }

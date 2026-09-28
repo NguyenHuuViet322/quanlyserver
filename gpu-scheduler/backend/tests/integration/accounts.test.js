@@ -49,22 +49,10 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
     const { body, cookie } = await t.login('moi@vimaru.edu.vn');
     assert.equal(body.user.status, 'pending');
     const res = await t.req('POST', '/api/bookings', cookie, {
-      start: '2026-10-06T08:00:00+07:00', end: '2026-10-06T10:00:00+07:00', use_gpu: false, image: 'vmu/pytorch:2.8-cuda12.8',
+      start: '2026-10-06T08:00:00+07:00', end: '2026-10-06T10:00:00+07:00', use_gpu: false,
     });
     assert.equal(res.statusCode, 403);
     assert.equal(code(res), 'ACCOUNT_PENDING');
-  });
-
-  test('US-T13 user thứ i nhận dải 10000+100(i−1)..+99, không trùng; user thứ 30 nhận 12900–12999', async () => {
-    const ranges = [];
-    for (let i = 1; i <= 30; i++) {
-      const u = await activeUser(`user${String(i).padStart(2, '0')}@vimaru.edu.vn`);
-      assert.deepEqual(u.ports, { from: 10000 + 100 * (i - 1), to: 10000 + 100 * (i - 1) + 99 }, `user ${i}`);
-      ranges.push(u.ports);
-    }
-    assert.deepEqual(ranges[29], { from: 12900, to: 12999 });
-    const starts = new Set(ranges.map((r) => r.from));
-    assert.equal(starts.size, 30);
   });
 
   test('US-T14 đã đủ 30 user active, duyệt thêm → 409 USER_LIMIT_REACHED', async () => {
@@ -88,27 +76,23 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
     const list = (await t.req('GET', '/api/admin/users?status=pending', admin)).json();
     assert.ok(list.some((x) => x.id === u.id && x.status === 'pending'));
 
-    // Sửa lỗi rồi duyệt lại → thành công, nhận dải cổng đầu tiên
+    // Sửa lỗi rồi duyệt lại → thành công
     t.system.clearFailures();
     const again = await approve(u.id);
     assert.equal(again.statusCode, 200);
-    assert.deepEqual(again.json().user.ports, { from: 10000, to: 10099 });
+    assert.equal(again.json().user.status, 'active');
+    assert.equal(again.json().user.ports, undefined);
   });
 
-  test('US-T29 xóa user có slot 3, duyệt user mới → nhận lại dải 10200–10299 nhưng UID mới', async () => {
+  test('US-T29 xóa user rồi duyệt user mới → UID mới lớn hơn mọi UID đã cấp, UID cũ không bị dùng lại', async () => {
     const users = [];
     for (let i = 1; i <= 3; i++) users.push(await activeUser(`s${i}@vimaru.edu.vn`));
-    const third = users[2];
-    assert.deepEqual(third.ports, { from: 10200, to: 10299 });
-    const del = await t.req('DELETE', `/api/admin/users/${third.id}`, admin);
+    const del = await t.req('DELETE', `/api/admin/users/${users[1].id}`, admin);
     assert.equal(del.statusCode, 200);
-
     const fresh = await activeUser('moi3@vimaru.edu.vn');
-    assert.deepEqual(fresh.ports, { from: 10200, to: 10299 });
-    const uids = users.map((u) => t.system.state.users.get(u.username)?.uid ?? null);
-    const freshUid = t.system.state.users.get('moi3').uid;
-    assert.ok(!uids.includes(freshUid), 'UID bị tái sử dụng');
-    assert.ok(freshUid > Math.max(...users.map((u) => u.uid)));
+    const oldUids = users.map((u) => u.uid);
+    assert.ok(!oldUids.includes(fresh.uid), 'UID bị tái sử dụng');
+    assert.ok(fresh.uid > Math.max(...oldUids));
   });
 
   // Không đặt tên bắt đầu bằng US-T12: US-T12 là test system, chỉ tick khi chạy trên server thật.
@@ -119,19 +103,6 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
     assert.equal(t.system.state.homes.get('vietnh'), sys.uid);
     assert.deepEqual(t.system.state.quotas.get(sys.uid), { soft: 80 * GiB, hard: 100 * GiB, path: '/data/users/vietnh' });
     assert.equal(u.status, 'active');
-  });
-
-  test('US-T31 duyệt user → ghi lại cấu hình sshd có Match User; xóa user → không còn', async () => {
-    const u = await activeUser('vietnh@vimaru.edu.vn');
-    assert.match(t.system.state.sshdUsers || '', /^Match User vietnh$/m);
-    assert.match(t.system.state.sshdUsers, /PermitOpen localhost:10000 127.0.0.1:10000 /);
-    const other = await activeUser('hoanglm@vimaru.edu.vn');
-    assert.match(t.system.state.sshdUsers, /^Match User hoanglm$/m);
-    const res = await t.req('DELETE', `/api/admin/users/${u.id}`, admin);
-    assert.equal(res.statusCode, 200);
-    assert.doesNotMatch(t.system.state.sshdUsers, /^Match User vietnh$/m);
-    assert.match(t.system.state.sshdUsers, /^Match User hoanglm$/m);
-    assert.ok(other);
   });
 
   test('US-T24 user thường gọi GET /admin/users → 403 FORBIDDEN', async () => {
@@ -153,11 +124,10 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
   test('US-T25 khóa user → 403 ACCOUNT_LOCKED, ca scheduled → cancelled, ca running → stopping → completed', async () => {
     const u = await activeUser('khoa@vimaru.edu.vn');
     const { cookie: oldCookie } = await t.login('khoa@vimaru.edu.vn');
-    await t.db.query(`INSERT INTO images (name) VALUES ('vmu/pytorch:2.8-cuda12.8') ON CONFLICT DO NOTHING`);
     const { rows } = await t.db.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, image, status, actual_start_at) VALUES
-        ($1, '2026-10-05T08:00:00+07:00', '2026-10-05T11:00:00+07:00', true, 'vmu/pytorch:2.8-cuda12.8', 'running', '2026-10-05T08:00:10+07:00'),
-        ($1, '2026-10-07T08:00:00+07:00', '2026-10-07T10:00:00+07:00', false, 'vmu/pytorch:2.8-cuda12.8', 'scheduled', NULL)
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at) VALUES
+        ($1, '2026-10-05T08:00:00+07:00', '2026-10-05T11:00:00+07:00', true, 'running', '2026-10-05T08:00:10+07:00'),
+        ($1, '2026-10-07T08:00:00+07:00', '2026-10-07T10:00:00+07:00', false, 'scheduled', NULL)
        RETURNING id, status`, [u.id]);
     const [running, scheduled] = rows;
 

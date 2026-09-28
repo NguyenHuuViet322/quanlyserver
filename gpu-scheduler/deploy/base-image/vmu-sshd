@@ -1,0 +1,11 @@
+#!/bin/bash
+# Chạy sshd kiểu inetd trong container, bằng UID của user (gọi từ vmu-exec --connect) — REQ-CT-11.
+# Host key lưu trong /workspace/.vmu để giữ nguyên giữa các ca (VS Code không báo đổi host key).
+set -euo pipefail
+dir="$HOME/.vmu"
+key="$dir/ssh_host_ed25519_key"
+if [[ ! -f "$key" ]]; then
+  mkdir -p "$dir" && chmod 0700 "$dir"
+  ssh-keygen -q -t ed25519 -N '' -f "$key" </dev/null >/dev/null
+fi
+exec /usr/sbin/sshd -i -f /etc/vmu/sshd_config -o "HostKey=$key" -E "$dir/sshd.log"

@@ -84,22 +84,6 @@ case "$action" in
   report-quota)
     xfs_quota -x -c 'report -p -b -N -n' "$DATA"
     ;;
-  write-sshd-users)
-    # Nội dung từ stdin, sinh bởi backend/src/system/sshd.js. Chỉ chấp nhận đúng 3 dạng dòng.
-    conf=/etc/ssh/sshd_config.d/40-vmu-users.conf
-    tmp=$(mktemp)
-    cat > "$tmp"
-    if grep -vqE '^(#.*|Match User [a-z][a-z0-9._-]{0,31}|    PermitOpen( (localhost|127\.0\.0\.1):[0-9]{1,5})+)?$' "$tmp"; then
-      rm -f "$tmp"; die "nội dung cấu hình sshd không hợp lệ"
-    fi
-    [[ -f "$conf" ]] && cp -p "$conf" "$conf.bak"
-    install -o root -g root -m 0644 "$tmp" "$conf"; rm -f "$tmp"
-    if ! sshd -t; then
-      if [[ -f "$conf.bak" ]]; then mv "$conf.bak" "$conf"; else rm -f "$conf"; fi
-      die "sshd -t báo lỗi, đã khôi phục cấu hình cũ"
-    fi
-    systemctl reload ssh 2>/dev/null || systemctl reload sshd
-    ;;
   purge-user)
     check_user "$1"; check_uid "$2"
     xfs_quota -x -c "limit -p bsoft=0 bhard=0 $2" "$DATA" || true

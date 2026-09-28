@@ -17,10 +17,9 @@
 - [x] **US-T10** (REQ-US-05) · negative · integration — Username bắt đầu bằng số, chứa ký tự ngoài `a-z0-9._-`, dài > 32, trùng `root`/`docker` (4 trường hợp) → duyệt trả `400 INVALID_USERNAME`, không tạo tài khoản Linux ✅ `a375761`
 - [x] **US-T11** (REQ-US-06) · negative · integration — Đăng nhập lần đầu → `status = pending`; gọi `POST /bookings` → `403 ACCOUNT_PENDING` ✅ `a375761`
 - [ ] **US-T12** (REQ-US-07, REQ-ST-01) · happy · system — Admin duyệt → có user Linux, `/data/users/<username>` thuộc UID của user mode `0700`, `xfs_quota` báo soft 80 GiB / hard 100 GiB
-- [x] **US-T13** (REQ-US-09) · happy · integration — Duyệt 30 user → user thứ `i` có dải `10000+100(i−1)` đến `+99`, không trùng nhau; user thứ 30 có `12900–12999` ✅ `a375761`
 - [x] **US-T14** (REQ-US-08) · negative · integration — Đã có 30 user `active`, duyệt thêm → `409 USER_LIMIT_REACHED` ✅ `a375761`
 - [x] **US-T15** (REQ-US-07) · edge · integration — Giả lập bước đặt quota lỗi → `500 PROVISIONING_FAILED`; không còn user Linux, thư mục, quota; user vẫn `pending` ✅ `a375761`
-- [x] **US-T29** (REQ-US-09, REQ-US-16) · edge · integration — Xóa user có `slot_index = 3`, duyệt user mới → user mới nhận `slot_index = 3` (dải `10200–10299`) nhưng UID mới ✅ `a375761`
+- [ ] **US-T29** (REQ-US-16) · edge · integration — Xóa một user rồi duyệt user mới → user mới nhận UID lớn hơn mọi UID đã cấp, UID của user đã xóa không bị dùng lại
 
 ## Mật khẩu SSH
 
@@ -31,7 +30,6 @@
 - [x] **US-T20** (REQ-US-10) · happy · integration — Response `GET /me/password` và `POST /me/password/reset` có `Cache-Control: no-store` ✅ `a375761`
 - [ ] **US-T21** (REQ-US-11) · happy · system — SSH bằng mật khẩu vừa cấp → đăng nhập được và bị yêu cầu đổi mật khẩu ngay
 - [ ] **US-T22** (REQ-US-12) · happy · system — Cấp lại mật khẩu → SSH bằng mật khẩu cũ thất bại; mật khẩu mới hiển thị một lần và phải đổi khi SSH
-- [x] **US-T31** (REQ-US-07, REQ-CT-10) · happy · integration — Duyệt user → cấu hình sshd được ghi lại, có khối `Match User` của user; xóa user → ghi lại, không còn khối đó ✅ `a375761`
 - [ ] **US-T23** (REQ-US-13) · happy · system — Thêm SSH key qua API → SSH bằng key thành công; xóa key → thất bại
 - [x] **US-T28** (REQ-US-13) · negative · integration — Thêm key `"not-a-key"` → `400 INVALID_SSH_KEY` ✅ `a375761`
 

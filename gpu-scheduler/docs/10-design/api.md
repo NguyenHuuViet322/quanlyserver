@@ -25,8 +25,6 @@ Mỗi mã lỗi phải có ít nhất 1 test case gây ra nó (Gate Bước 3).
 |---|---|---|---|---|
 | 400 | `VALIDATION_ERROR` | Body sai kiểu, thiếu trường bắt buộc (vd thiếu `use_gpu`) | REQ-BK-10 | BK-T25 |
 | 400 | `INVALID_TIME` | Vi phạm REQ-BK-01; `details.reason` ∈ `MISSING_TIMEZONE`, `NOT_ALIGNED` (không phải giờ tròn theo giờ VN), `END_BEFORE_START`, `TOO_LONG`, `IN_PAST`, `BEYOND_HORIZON` | REQ-BK-01, REQ-BK-11 | BK-T02..T06, BK-T24, BK-T33, BK-T35 |
-| 400 | `IMAGE_NOT_ALLOWED` | `image` không thuộc danh sách cho phép | REQ-BK-10, REQ-CT-06 | BK-T31 |
-| 400 | `PORT_NOT_ALLOWED` | Có cổng ngoài dải của user | REQ-BK-10, REQ-CT-05 | BK-T32 |
 | 400 | `INVALID_USERNAME` | Duyệt user có username không hợp lệ | REQ-US-05 | US-T10 |
 | 400 | `INVALID_SSH_KEY` | SSH public key sai định dạng | REQ-US-13 | US-T28 |
 | 401 | `UNAUTHENTICATED` | Không có hoặc hết phiên đăng nhập | REQ-US-14 | US-T27 |
@@ -45,7 +43,7 @@ Mỗi mã lỗi phải có ít nhất 1 test case gây ra nó (Gate Bước 3).
 | 409 | `INVALID_STATE` | Thao tác không hợp lệ với trạng thái ca | REQ-BK-08, REQ-SC-07 | BK-T26, SC-T11 |
 | 500 | `PROVISIONING_FAILED` | Lỗi khi cấp phát tài khoản, đã rollback | REQ-US-07 | US-T15 |
 
-Thứ tự kiểm tra khi đặt ca: `VALIDATION_ERROR` → `INVALID_TIME` → `IMAGE_NOT_ALLOWED` → `PORT_NOT_ALLOWED` → `USER_OVERLAP` → `GPU_BUSY` → `SLOT_FULL` → `GPU_QUOTA_EXCEEDED`.
+Thứ tự kiểm tra khi đặt ca: `VALIDATION_ERROR` → `INVALID_TIME` → `USER_OVERLAP` → `GPU_BUSY` → `SLOT_FULL` → `GPU_QUOTA_EXCEEDED`.
 
 ## Cấu hình công khai
 
@@ -70,16 +68,14 @@ Tài khoản `pending` vẫn đăng nhập được (để thấy màn hình ch�
 
 ### `POST /auth/logout` → `204`
 
-## Tài khoản của tôi — REQ-US-09..13, REQ-UI-04, REQ-UI-05
+## Tài khoản của tôi — REQ-US-10..13, REQ-UI-05
 
 ### `GET /me`
 ```json
 { "id": 7, "email": "vietnh@vimaru.edu.vn", "name": "Nguyễn Hữu Việt", "avatar_url": "https://…",
   "username": "vietnh", "status": "active", "role": "user", "uid": 2001,
-  "ports": { "from": 10000, "to": 10099 },
   "storage": { "used_bytes": 12884901888, "soft_bytes": 85899345920, "hard_bytes": 107374182400,
-               "over_soft_since": null, "grace_deadline": null, "checked_at": "2026-10-05T09:15:00+07:00" },
-  "gpu_quota": { "week_start": "2026-09-28T00:00:00+07:00", "limit_hours": 10, "used_hours": 3.5, "remaining_hours": 6.5 } }
+               "over_soft_since": null, "grace_deadline": null, "checked_at": "2026-10-05T09:15:00+07:00" } }
 ```
 
 ### `GET /me/password` — REQ-US-10
@@ -92,28 +88,27 @@ Tài khoản `pending` vẫn đăng nhập được (để thấy màn hình ch�
 `200 { "password": "…" }`, `Cache-Control: no-store`. Mật khẩu cũ hết hiệu lực ngay; mật khẩu mới phải đổi ở lần SSH đầu.
 
 ### `GET /me/ssh-keys` · `POST /me/ssh-keys { "public_key": "ssh-ed25519 AAAA… comment" }` → `201` · `DELETE /me/ssh-keys/:id` → `204`
-Lỗi: `400 INVALID_SSH_KEY`.
+Lỗi: `400 INVALID_SSH_KEY`. Key cũng dùng cho SSH thẳng vào container (REQ-CT-11), có hiệu lực ngay cả với ca đang chạy.
 
 ## Đặt lịch — REQ-BK-01..10
 
-### `GET /images` → `200 [{ "name": "vmu/pytorch:2.8-cuda12.8" }, …]`
-
 ### `GET /calendar?from=…&to=…` — REQ-UI-02
-`from`, `to` có múi giờ, hoặc dạng ngày `2026-10-05` (00:00 giờ VN của ngày đó). Trả các khoảng thời gian liên tiếp có số phiên không đổi, mốc luôn là giờ tròn:
+`from`, `to` có múi giờ, hoặc dạng ngày `2026-10-05` (00:00 giờ VN của ngày đó); tối đa 8 ngày. Trả các **ca hiệu lực** giao với khoảng đó, của mọi người (REQ-UI-02: ai đang dùng, ca nào dùng GPU), sắp theo giờ bắt đầu:
 ```json
-[ { "start": "…T08:00+07:00", "end": "…T09:00+07:00", "sessions": 1, "gpu_taken": true } ]
+[ { "id": 42, "start": "2026-10-05T08:00:00+07:00", "end": "2026-10-05T10:00:00+07:00", "username": "vietnh", "use_gpu": true, "mine": true },
+  { "id": 43, "start": "2026-10-05T09:00:00+07:00", "end": "2026-10-05T12:00:00+07:00", "username": "hoanglm", "use_gpu": false, "mine": false } ]
 ```
+Không trả ca `cancelled`, `completed`, `failed`. Client tự tính khung nào đã đủ 2 phiên.
 
 ### `POST /bookings`
 ```json
-{ "start": "2026-10-05T09:00:00+07:00", "end": "2026-10-05T11:00:00+07:00",
-  "use_gpu": true, "image": "vmu/pytorch:2.8-cuda12.8", "ports": [10001, 10006] }
+{ "start": "2026-10-05T09:00:00+07:00", "end": "2026-10-05T11:00:00+07:00", "use_gpu": true }
 ```
-`201` → đối tượng ca (dưới). Lỗi: xem bảng mã lỗi.
+`201` → đối tượng ca (dưới). Lỗi: xem bảng mã lỗi. Trường thừa (vd `image`, `ports`) bị bỏ qua.
 
 ### Đối tượng ca
 ```json
-{ "id": 42, "user": "vietnh", "start": "…", "end": "…", "use_gpu": true, "image": "…", "ports": [10001],
+{ "id": 42, "user": "vietnh", "start": "…", "end": "…", "use_gpu": true,
   "status": "scheduled", "container_name": "vmu-bk-42", "exit_reason": null,
   "gpu_hours_used": 0, "created_at": "…" }
 ```
@@ -162,7 +157,6 @@ Tài khoản bị khóa hoặc đã xóa: phiên cũ vẫn tồn tại nhưng m�
 | `POST /admin/users/:id/lock` | `200`, user `locked` | `409 INVALID_STATE` |
 | `POST /admin/users/:id/unlock` | `200`, user `active` | `409 INVALID_STATE` |
 | `DELETE /admin/users/:id` | `200`, user `deleted` | |
-| `GET /admin/images` · `PUT /admin/images { "images": ["…"] }` | danh sách image cho phép; image không có trong danh sách PUT bị tắt (không xóa) | |
 | `GET /admin/audit?from=…&to=…` | 1000 dòng mới nhất: `{ id, actor (username hoặc "system"), action, target, details, created_at }` | |
 
 ## Gate Bước 2

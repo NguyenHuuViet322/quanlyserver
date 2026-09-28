@@ -5,7 +5,6 @@ const os = require('node:os');
 const path = require('node:path');
 const { DateTime } = require('luxon');
 const { defaults } = require('../config');
-const { portRange } = require('../users/ports');
 const { buildRunArgs } = require('../container/run-args');
 
 const SCHEDULER_LOCK = 3001; // khóa advisory mức phiên: chỉ một tick chạy tại một thời điểm — REQ-SC-04
@@ -43,6 +42,14 @@ async function saveAndRemove(e, bookingId) {
   await e.docker.rm(name);
 }
 
+// REQ-CT-11: sshd, ssh-keygen cần tra được user; image không có sẵn dòng cho UID của từng người.
+// Lệnh cố định chạy bằng root TRONG container; username đã kiểm tra lại, chỉ gồm a-z 0-9 . _ -
+function passwdScript(username, uid) {
+  if (!/^[a-z][a-z0-9._-]{0,31}$/.test(username) || !Number.isInteger(uid)) throw new Error(`user không hợp lệ: ${username}`);
+  return `grep -q '^${username}:' /etc/passwd || echo '${username}:x:${uid}:${uid}::/workspace:/bin/bash' >> /etc/passwd; `
+    + `grep -q '^${username}:' /etc/group || echo '${username}:x:${uid}:' >> /etc/group`;
+}
+
 // --- Các bước của một tick ---
 
 // Scheduler tắt suốt thời gian của ca → failed — SC-T12
@@ -55,13 +62,10 @@ async function failMissed(e, now) {
 async function startOne(e, booking, now) {
   const name = containerName(booking.id);
   try {
-    const user = (await e.db.query('SELECT username, linux_uid, slot_index FROM users WHERE id = $1', [booking.user_id])).rows[0];
-    const images = (await e.db.query('SELECT name FROM images WHERE enabled')).rows.map((r) => r.name);
+    const user = (await e.db.query('SELECT username, linux_uid FROM users WHERE id = $1', [booking.user_id])).rows[0];
     const args = buildRunArgs({
       booking,
       user: { username: user.username, uid: user.linux_uid },
-      ports: portRange(user.slot_index, e.cfg),
-      allowedImages: images,
       cpuThreads: e.host.cpuThreads,
     }, e.cfg);
 
@@ -69,11 +73,11 @@ async function startOne(e, booking, now) {
     if (!state?.running) {
       if (state) await saveAndRemove(e, booking.id); // container cũ đã thoát (restart)
       await e.docker.run(args);
+      await e.docker.exec(name, ['sh', '-c', passwdScript(user.username, user.linux_uid)], { user: '0' });
     }
     await e.db.query(
       `UPDATE bookings SET status = 'running', exit_reason = NULL, actual_start_at = coalesce(actual_start_at, $2)
        WHERE id = $1 AND status = 'starting'`, [booking.id, now]);
-    await e.db.query('UPDATE images SET last_used_at = $2 WHERE name = $1', [booking.image, now]);
   } catch (err) {
     await appendLog(e.cfg, booking.id, `[${now.toISOString()}] Lỗi khởi chạy container: ${err.message}`);
     const { rowCount } = await e.db.query(

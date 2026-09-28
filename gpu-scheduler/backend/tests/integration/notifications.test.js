@@ -28,10 +28,9 @@ describe('M6 — Thông báo', () => {
       ['OOM', 42, 'Ca #42 bị OOM', '2026-10-05T10:00:00'],
       ['END_WARNING', 42, 'Ca của bạn kết thúc lúc 11:00 (GMT+7). Hãy lưu checkpoint.', '2026-10-05T10:45:00'],
     ];
-    await t.db.query(`INSERT INTO images (name) VALUES ('img')`);
     for (const id of [41, 42]) {
       await t.db.query(
-        `INSERT INTO bookings (id, user_id, start_at, end_at, use_gpu, image, status) VALUES ($1, $2, $3, $4, true, 'img', 'completed')`,
+        `INSERT INTO bookings (id, user_id, start_at, end_at, use_gpu, status) VALUES ($1, $2, $3, $4, true, 'completed')`,
         [id, A.id, vn('2026-10-05T09:00:00'), vn('2026-10-05T11:00:00')]);
     }
     ids = {};

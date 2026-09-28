@@ -10,7 +10,6 @@ const { runTick } = require('../../src/scheduler/tick');
 const { refreshStorage } = require('../../src/storage/service');
 const { purgeOldLogs } = require('../../src/monitoring/service');
 
-const IMAGE = 'vmu/pytorch:2.8-cuda12.8';
 const GiB = 1024 ** 3;
 const DAY = 24 * 3600 * 1000;
 const vn = (s) => `${s}+07:00`;
@@ -27,7 +26,6 @@ describe('M5, M6 — Lưu trữ, giám sát & log', () => {
     docker = createFakeDocker();
     t = await createTestApp({ now: vn('2026-10-05T08:50:00'), config: { logDir }, docker });
     admin = await t.adminCookie('quantri@vimaru.edu.vn');
-    await t.db.query('INSERT INTO images (name) VALUES ($1)', [IMAGE]);
     const { body } = await t.login('a@vimaru.edu.vn');
     const res = await t.req('POST', `/api/admin/users/${body.user.id}/approve`, admin);
     A = { ...res.json().user, cookie: (await t.login('a@vimaru.edu.vn')).cookie };
@@ -42,7 +40,7 @@ describe('M5, M6 — Lưu trữ, giám sát & log', () => {
   const tick = () => runTick({ db: t.db, docker, clock: t.clock, cfg: { ...defaults, logDir }, host: { cpuThreads: 32 } });
   const code = (res) => res.json().error?.code;
   async function book(start = '2026-10-05T09:00:00', end = '2026-10-05T11:00:00', use_gpu = true) {
-    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn(start), end: vn(end), use_gpu, image: IMAGE });
+    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn(start), end: vn(end), use_gpu });
     assert.equal(res.statusCode, 201, res.body);
     return res.json();
   }

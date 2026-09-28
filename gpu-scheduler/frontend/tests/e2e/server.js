@@ -12,7 +12,6 @@ const { createFakeDocker } = require('../../../backend/tests/helpers/fake-docker
 const PORT = Number(process.env.E2E_PORT || 4173);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:test@localhost:55432/vmu_test';
 const DEFAULT_NOW = '2026-10-05T09:20:00+07:00';
-const IMAGE = 'vmu/pytorch:2.8-cuda12.8';
 const GiB = 1024 ** 3;
 
 async function main() {
@@ -38,7 +37,6 @@ async function main() {
     await resetSchema(db);
     for (const m of [system.state.users, system.state.homes, system.state.quotas, system.state.usage, docker.containers]) m.clear();
     now = new Date(req.body?.now || DEFAULT_NOW).getTime();
-    await db.query('INSERT INTO images (name) VALUES ($1)', [IMAGE]);
     return { ok: true };
   });
 
@@ -65,13 +63,13 @@ async function main() {
   });
 
   app.post('/__test/booking', async (req) => {
-    const { email, start, end, use_gpu = false, status = 'scheduled', ports = [] } = req.body;
+    const { email, start, end, use_gpu = false, status = 'scheduled' } = req.body;
     const u = await userByEmail(email);
     const actual = status === 'completed' || status === 'running' ? start : null;
     const { rows } = await db.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, image, status, ports, actual_start_at, actual_end_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id`,
-      [u.id, start, end, use_gpu, IMAGE, status, ports, actual, status === 'completed' ? end : null]);
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at, actual_end_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [u.id, start, end, use_gpu, status, actual, status === 'completed' ? end : null]);
     if (status === 'running') docker.addContainer(`vmu-bk-${rows[0].id}`, rows[0].id);
     return { id: rows[0].id };
   });

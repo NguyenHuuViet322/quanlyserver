@@ -87,10 +87,27 @@ test('CT-T17 lệnh chép file chạy trên máy chủ, không qua shell; lệnh
     r = enter(env, undefined);
     assert.deepEqual(r.calls[0].slice(2), ['-n', '/usr/local/sbin/vmu-exec', '--', '']);
 
+    // (xem thêm CT-T20 cho vmu-connect)
     // Không lần nào gọi sh/bash trên máy chủ
     for (const cmd of ['rsync --server . ; sh', 'scp -f x ; bash']) {
       r = enter(env, cmd);
       assert.ok(r.calls.every((c) => c[0] !== 'sh' && c[0] !== 'bash'), cmd);
+    }
+  } finally {
+    fs.rmSync(env.root, { recursive: true, force: true });
+  }
+});
+
+test('CT-T20 đúng một từ "vmu-connect" → sudo vmu-exec --connect; biến thể khác không được coi là vmu-connect', () => {
+  const env = setup();
+  try {
+    let r = enter(env, 'vmu-connect');
+    assert.equal(r.calls.length, 1, JSON.stringify(r.calls));
+    assert.equal(r.calls[0][0], 'sudo');
+    assert.deepEqual(r.calls[0].slice(2), ['-n', '/usr/local/sbin/vmu-exec', '--connect']);
+    for (const cmd of ['vmu-connect ; id', 'vmu-connect x', 'vmu-connectx']) {
+      r = enter(env, cmd);
+      assert.deepEqual(r.calls[0].slice(2), ['-n', '/usr/local/sbin/vmu-exec', '--', cmd], cmd);
     }
   } finally {
     fs.rmSync(env.root, { recursive: true, force: true });

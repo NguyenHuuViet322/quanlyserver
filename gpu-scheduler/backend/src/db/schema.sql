@@ -14,7 +14,6 @@ CREATE TABLE users (
   role                 user_role   NOT NULL DEFAULT 'user',
   status               user_status NOT NULL DEFAULT 'pending',
   linux_uid            integer UNIQUE,
-  slot_index           smallint UNIQUE CHECK (slot_index >= 1),
   pending_password_enc bytea,
   storage_used_bytes   bigint,        -- REQ-ST-05: lần đọc xfs_quota gần nhất
   storage_soft_bytes   bigint,
@@ -44,20 +43,12 @@ CREATE TABLE ssh_keys (
   UNIQUE (user_id, fingerprint)
 );
 
-CREATE TABLE images (
-  name         text PRIMARY KEY,
-  enabled      boolean NOT NULL DEFAULT true,
-  last_used_at timestamptz
-);
-
 CREATE TABLE bookings (
   id              bigserial PRIMARY KEY,
   user_id         bigint NOT NULL REFERENCES users(id),
   start_at        timestamptz NOT NULL,
   end_at          timestamptz NOT NULL CHECK (end_at > start_at),
   use_gpu         boolean NOT NULL,
-  image           text NOT NULL REFERENCES images(name),
-  ports           integer[] NOT NULL DEFAULT '{}',
   status          booking_status NOT NULL DEFAULT 'scheduled',
   exit_reason     text,
   actual_start_at timestamptz,

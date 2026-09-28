@@ -35,6 +35,9 @@ const P = {
   plus: '<path d="M12 5v14M5 12h14"/>',
   hourglass: '<path d="M6 2h12M6 22h12M7 2v4l5 6 5-6V2M7 22v-4l5-6 5 6v4"/>',
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
+  code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+  'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
   box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
 };
 
@@ -130,11 +133,6 @@ export function errorMessage(e) {
     case 'GPU_QUOTA_EXCEEDED': return 'Bạn đã dùng hết 10 giờ GPU tuần này. Bạn vẫn đặt được khung GPU còn trống trong 24 giờ tới.';
     case 'USER_OVERLAP': return 'Bạn đã có một ca khác trong khoảng thời gian này.';
     case 'INVALID_TIME': return TIME_REASONS[e.details?.reason] || 'Thời gian ca không hợp lệ.';
-    case 'IMAGE_NOT_ALLOWED': return 'Image không nằm trong danh sách cho phép.';
-    case 'PORT_NOT_ALLOWED': {
-      const r = e.details?.allowed;
-      return r ? `Cổng phải nằm trong dải của bạn (${r.from}–${r.to}).` : 'Cổng phải nằm trong dải của bạn.';
-    }
     case 'INVALID_STATE': return 'Thao tác không còn hợp lệ với trạng thái hiện tại của ca. Hãy tải lại trang.';
     case 'INVALID_SSH_KEY': return 'SSH key không đúng định dạng. Hãy dán nguyên dòng trong file .pub (vd bắt đầu bằng ssh-ed25519).';
     case 'INVALID_USERNAME': return 'Tên đăng nhập không hợp lệ (phải bắt đầu bằng chữ, chỉ gồm a-z 0-9 . _ -, tối đa 32 ký tự, không trùng tên hệ thống). Cần xử lý thủ công.';

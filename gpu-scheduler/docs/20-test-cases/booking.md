@@ -12,8 +12,7 @@ Ký hiệu giờ `08–10` là ca 08:00–10:00 cùng một ngày trong 7 ngày 
 - [x] **BK-T05** (REQ-BK-01) · negative · unit — Mốc 09:10, 09:30, 09:00:30, 09:00:00.500 (giờ VN) → `400 INVALID_TIME`, `reason = NOT_ALIGNED` ✅ `a375761`
 - [x] **BK-T06** (REQ-BK-01) · edge · unit — `start = now + 7 ngày + 1 giờ` → `400 INVALID_TIME` (`BEYOND_HORIZON`); `start` đúng biên 7 ngày → hợp lệ ✅ `a375761`
 - [x] **BK-T25** (REQ-BK-10) · negative · integration — Thiếu `use_gpu` → `400 VALIDATION_ERROR` ✅ `a375761`
-- [x] **BK-T31** (REQ-BK-10, REQ-CT-06) · negative · integration — `image = "ubuntu:latest"` (ngoài danh sách) → `400 IMAGE_NOT_ALLOWED` ✅ `a375761`
-- [x] **BK-T32** (REQ-BK-10, REQ-CT-05) · negative · integration — User dải 10000–10099 xin cổng `10100` → `400 PORT_NOT_ALLOWED`; cổng `10099` → `201` ✅ `a375761`
+- [ ] **BK-T41** (REQ-BK-10) · edge · integration — Gửi thêm `image` và `ports` → vẫn `201`, ca không lưu hai trường này; đối tượng ca trả về không có `image`, `ports`
 
 ## Giới hạn đồng thời
 
@@ -58,3 +57,4 @@ Các test `unit` ở mục này (và toàn bộ unit test) chạy với `TZ=UTC`
 - [x] **BK-T38** (REQ-BK-12) · edge · unit — Chạy toàn bộ kiểm tra thời gian (BK-T02..T06, T24, T28, T35, T36) với 3 giá trị `TZ` của tiến trình → kết quả giống hệt nhau ✅ `a375761`
 - [x] **BK-T39** (REQ-BK-01) · edge · unit — `now` = 09:20 VN: đặt 09–10 → `IN_PAST`; đặt 10–11 → hợp lệ ✅ `a375761`
 - [x] **BK-T40** (REQ-BK-01, REQ-BK-12) · edge · unit — `now` = 23:30 VN ngày 05/10: đặt ca 00:00–02:00 ngày 06/10 → hợp lệ (không bị hiểu nhầm là ngày 05/10 theo UTC) ✅ `a375761`
+- [ ] **BK-T42** (REQ-UI-02) · happy · integration — `GET /calendar` trả các ca hiệu lực của mọi người kèm `username`, `use_gpu`, `mine`; không có ca `cancelled`/`completed`/`failed`; `from`/`to` quá 8 ngày → `400 VALIDATION_ERROR`

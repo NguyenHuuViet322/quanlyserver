@@ -2,7 +2,6 @@ const { test, describe, beforeEach, afterEach } = require('node:test');
 const assert = require('node:assert/strict');
 const { createTestApp } = require('../helpers/app');
 
-const IMAGE = 'vmu/pytorch:2.8-cuda12.8';
 const vn = (s) => `${s}+07:00`;
 
 describe('M2 — Đặt lịch', () => {
@@ -18,7 +17,6 @@ describe('M2 — Đặt lịch', () => {
     t = await createTestApp({ now: '2026-10-05T09:20:00+07:00' });
     // Admin (bootstrap, còn pending) duyệt A–D trước để A nhận dải cổng 10000–10099, rồi tự duyệt mình
     admin = await t.adminCookie('quantri@vimaru.edu.vn');
-    await t.db.query('INSERT INTO images (name) VALUES ($1)', [IMAGE]);
     const approve = async (email) => {
       const { body } = await t.login(email);
       const res = await t.req('POST', `/api/admin/users/${body.user.id}/approve`, admin);
@@ -35,13 +33,13 @@ describe('M2 — Đặt lịch', () => {
 
   const code = (res) => res.json().error?.code;
   const book = (u, start, end, use_gpu = false, extra = {}) =>
-    t.req('POST', '/api/bookings', u.cookie, { start, end, use_gpu, image: IMAGE, ...extra });
+    t.req('POST', '/api/bookings', u.cookie, { start, end, use_gpu, ...extra });
   const count = async () => (await t.db.query('SELECT count(*)::int AS n FROM bookings')).rows[0].n;
   async function insertBooking(u, start, end, useGpu, status, actual = {}) {
     const { rows } = await t.db.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, image, status, actual_start_at, actual_end_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [u.id, start, end, useGpu, IMAGE, status, actual.start ?? null, actual.end ?? null],
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at, actual_end_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [u.id, start, end, useGpu, status, actual.start ?? null, actual.end ?? null],
     );
     return rows[0].id;
   }
@@ -89,13 +87,16 @@ describe('M2 — Đặt lịch', () => {
     assert.equal(res.statusCode, 201, res.body);
   });
 
-  // Lặp nhiều khung giờ để tăng khả năng hai transaction thực sự chen nhau
+  // Lặp nhiều khung giờ để tăng khả năng hai transaction thực sự chen nhau.
+  // Luân phiên cặp (A, B) / (C, D): mỗi người thắng tối đa 3 lần × 2 giờ = 6 giờ < 10 giờ GPU/tuần,
+  // để lỗi trả về chỉ có thể là GPU_BUSY chứ không phải GPU_QUOTA_EXCEEDED.
   test('BK-T19 2 request đồng thời tranh cùng khung GPU → đúng 1 thành công, 1 GPU_BUSY', async () => {
     for (let day = 6; day <= 11; day++) {
       const d = String(day).padStart(2, '0');
+      const [u1, u2] = day % 2 ? [A, B] : [C, D];
       const results = await Promise.all([
-        book(A, vn(`2026-10-${d}T08:00:00`), vn(`2026-10-${d}T10:00:00`), true),
-        book(B, vn(`2026-10-${d}T08:00:00`), vn(`2026-10-${d}T10:00:00`), true),
+        book(u1, vn(`2026-10-${d}T08:00:00`), vn(`2026-10-${d}T10:00:00`), true),
+        book(u2, vn(`2026-10-${d}T08:00:00`), vn(`2026-10-${d}T10:00:00`), true),
       ]);
       assert.deepEqual(results.map((r) => r.statusCode).sort(), [201, 409], `ngày ${d}`);
       assert.equal(code(results.find((r) => r.statusCode === 409)), 'GPU_BUSY');
@@ -153,28 +154,36 @@ describe('M2 — Đặt lịch', () => {
   });
 
   test('BK-T25 thiếu use_gpu → 400 VALIDATION_ERROR', async () => {
-    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn('2026-10-06T08:00:00'), end: vn('2026-10-06T10:00:00'), image: IMAGE });
+    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn('2026-10-06T08:00:00'), end: vn('2026-10-06T10:00:00') });
     assert.equal(res.statusCode, 400);
     assert.equal(code(res), 'VALIDATION_ERROR');
-    const str = await t.req('POST', '/api/bookings', A.cookie, { start: vn('2026-10-06T08:00:00'), end: vn('2026-10-06T10:00:00'), image: IMAGE, use_gpu: 'true' });
+    const str = await t.req('POST', '/api/bookings', A.cookie, { start: vn('2026-10-06T08:00:00'), end: vn('2026-10-06T10:00:00'), use_gpu: 'true' });
     assert.equal(str.statusCode, 400);
     assert.equal(code(str), 'VALIDATION_ERROR');
   });
 
-  test('BK-T31 image ngoài danh sách → 400 IMAGE_NOT_ALLOWED', async () => {
-    const res = await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), false, { image: 'ubuntu:latest' });
-    assert.equal(res.statusCode, 400);
-    assert.equal(code(res), 'IMAGE_NOT_ALLOWED');
+  test('BK-T41 gửi thêm image và ports → vẫn 201, ca không có hai trường này', async () => {
+    const res = await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), false, { image: 'ubuntu:latest', ports: [22, 10001] });
+    assert.equal(res.statusCode, 201, res.body);
+    assert.equal(res.json().image, undefined);
+    assert.equal(res.json().ports, undefined);
   });
 
-  test('BK-T32 user dải 10000–10099 xin cổng 10100 → 400 PORT_NOT_ALLOWED; cổng 10099 → 201', async () => {
-    assert.deepEqual(A.ports, { from: 10000, to: 10099 });
-    const bad = await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), false, { ports: [10001, 10100] });
-    assert.equal(bad.statusCode, 400);
-    assert.equal(code(bad), 'PORT_NOT_ALLOWED');
-    const ok = await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), false, { ports: [10099] });
-    assert.equal(ok.statusCode, 201, ok.body);
-    assert.deepEqual(ok.json().ports, [10099]);
+  test('BK-T42 GET /calendar trả ca hiệu lực của mọi người kèm username, use_gpu, mine; bỏ ca cancelled/completed/failed; quá 8 ngày → 400', async () => {
+    const a = (await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), true)).json();
+    const b = (await book(B, vn('2026-10-06T09:00:00'), vn('2026-10-06T12:00:00'))).json();
+    await insertBooking(C, vn('2026-10-06T13:00:00'), vn('2026-10-06T14:00:00'), false, 'cancelled');
+    await insertBooking(C, vn('2026-10-05T06:00:00'), vn('2026-10-05T08:00:00'), false, 'completed');
+    await insertBooking(D, vn('2026-10-06T15:00:00'), vn('2026-10-06T16:00:00'), false, 'failed');
+    const res = await t.req('GET', '/api/calendar?from=2026-10-05&to=2026-10-13', A.cookie);
+    assert.equal(res.statusCode, 200, res.body);
+    assert.deepEqual(res.json(), [
+      { id: a.id, start: '2026-10-06T08:00:00+07:00', end: '2026-10-06T10:00:00+07:00', username: 'a', use_gpu: true, mine: true },
+      { id: b.id, start: '2026-10-06T09:00:00+07:00', end: '2026-10-06T12:00:00+07:00', username: 'b', use_gpu: false, mine: false },
+    ]);
+    const tooLong = await t.req('GET', '/api/calendar?from=2026-10-05&to=2026-10-14', A.cookie);
+    assert.equal(tooLong.statusCode, 400);
+    assert.equal(code(tooLong), 'VALIDATION_ERROR');
   });
 
   test('BK-T33 start không có múi giờ → 400 INVALID_TIME, reason MISSING_TIMEZONE', async () => {

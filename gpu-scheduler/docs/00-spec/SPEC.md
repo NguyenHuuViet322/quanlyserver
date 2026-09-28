@@ -17,8 +17,6 @@ Nguồn: [`ke-hoach-server-vmu.md`](../../../ke-hoach-server-vmu.md). Tài liệ
 | `USERNAME_MAX_LENGTH` | 32 | Độ dài tối đa username |
 | `RESERVED_USERNAMES` | `root, admin, docker, nginx, postgres, nobody, daemon, bin, sys, www-data, ubuntu` | Tên không được dùng |
 | `PASSWORD_LENGTH` | 16 | Độ dài mật khẩu SSH sinh ngẫu nhiên |
-| `PORT_BASE` | 10000 | Cổng đầu tiên của user thứ 1 |
-| `PORT_RANGE_SIZE` | 100 | Số cổng mỗi user |
 | `MAX_CONCURRENT_SESSIONS` | 2 | Số phiên chạy đồng thời tối đa |
 | `MAX_GPU_SESSIONS` | 1 | Số phiên GPU đồng thời tối đa |
 | `SLOT_STEP` | 1 giờ | Ca đăng ký theo giờ tròn: mốc bắt đầu/kết thúc là `HH:00:00` theo `TIMEZONE`; ca ngắn nhất 1 giờ |
@@ -44,7 +42,8 @@ Nguồn: [`ke-hoach-server-vmu.md`](../../../ke-hoach-server-vmu.md). Tài liệ
 | `LOG_RETENTION` | 30 ngày | Thời gian giữ log container (Q1) |
 | `DELETED_USER_RETENTION` | 30 ngày | Giữ dữ liệu user đã xóa trước khi xóa hẳn (Q2) |
 | `SESSION_TTL` | 30 ngày | Thời hạn phiên đăng nhập Dashboard (cookie `sid`) |
-| `ALLOWED_IMAGES` | danh sách do admin quản lý | Image được phép dùng |
+| `BASE_IMAGE` | `vmu/base:cuda12.8` | Image chung cho mọi container, admin cập nhật (Q13) |
+| `CONTAINER_NETWORK` | `vmu-net` | Mạng Docker của container, tắt giao tiếp giữa các container |
 
 Các giá trị kế hoạch chưa nêu đã được chốt ở mục 10.
 
@@ -82,13 +81,10 @@ Username MUST là phần trước `@` của email, chuyển chữ thường. Use
 Lần đăng nhập đầu MUST tạo tài khoản trạng thái `pending`. Tài khoản `pending` MUST NOT dùng được API đặt ca, mật khẩu, SSH key (`403 ACCOUNT_PENDING`).
 
 ### REQ-US-07 — Cấp phát khi duyệt
-Khi admin duyệt, hệ thống MUST tạo trong một thao tác nguyên tử: tài khoản Linux với UID riêng, thư mục `/data/users/<username>` thuộc UID đó, project quota (REQ-ST-01), dải cổng (REQ-US-09), mật khẩu ban đầu (REQ-US-10). Bất kỳ bước nào lỗi thì MUST rollback toàn bộ các bước trước và giữ trạng thái `pending`.
+Khi admin duyệt, hệ thống MUST tạo trong một thao tác nguyên tử: tài khoản Linux với UID riêng, thư mục `/data/users/<username>` thuộc UID đó, project quota (REQ-ST-01), mật khẩu ban đầu (REQ-US-10). Bất kỳ bước nào lỗi thì MUST rollback toàn bộ các bước trước và giữ trạng thái `pending`.
 
 ### REQ-US-08 — Giới hạn số tài khoản
 Số tài khoản `active` + `locked` MUST ≤ `CFG.MAX_USERS`. Duyệt vượt số này MUST trả `409 USER_LIMIT_REACHED`.
-
-### REQ-US-09 — Dải cổng
-User được cấp chỉ số `i` (1..`MAX_USERS`, chỉ số nhỏ nhất còn trống) MUST nhận dải `[PORT_BASE + PORT_RANGE_SIZE·(i−1), PORT_BASE + PORT_RANGE_SIZE·i − 1]`. Hai user không được có dải trùng nhau.
 
 ### REQ-US-10 — Mật khẩu SSH ban đầu
 - MUST sinh bằng CSPRNG (`crypto.randomBytes`), dài `CFG.PASSWORD_LENGTH`.
@@ -112,7 +108,7 @@ Có hai vai trò `user` và `admin`. API admin MUST trả `403 FORBIDDEN` cho va
 Admin khóa user thì MUST: chặn đăng nhập Dashboard (`403 ACCOUNT_LOCKED`) và SSH, chuyển các ca `scheduled` sang `cancelled`, dừng phiên đang chạy theo REQ-SC-03.
 
 ### REQ-US-16 — Xóa tài khoản
-Xóa user MUST khóa tài khoản như REQ-US-15 và giải phóng chỉ số cổng; dữ liệu `/data/users/<username>` MUST được giữ `CFG.DELETED_USER_RETENTION` rồi mới xóa hẳn.
+Xóa user MUST khóa tài khoản như REQ-US-15; UID MUST NOT được cấp lại cho user khác; dữ liệu `/data/users/<username>` MUST được giữ `CFG.DELETED_USER_RETENTION` rồi mới xóa hẳn.
 
 ## 4. M2 — Đặt lịch (`BK`)
 
@@ -156,7 +152,7 @@ Chỉ chủ ca hoặc admin MUST được hủy/kết thúc sớm/khởi động
 Ca `cancelled`, `completed`, `failed` MUST NOT được tính trong REQ-BK-02..04.
 
 ### REQ-BK-10 — Dữ liệu đặt ca
-Request MUST có `use_gpu` (boolean, không mặc định) và `image` thuộc `CFG.ALLOWED_IMAGES`. Có thể có `ports`: danh sách cổng container cần publish, mỗi cổng MUST nằm trong dải của user. Thiếu `use_gpu` → `400 VALIDATION_ERROR`; image không hợp lệ → `400 IMAGE_NOT_ALLOWED`; cổng ngoài dải → `400 PORT_NOT_ALLOWED`.
+Request MUST có `start`, `end` và `use_gpu` (boolean, không mặc định). Thiếu hoặc sai kiểu → `400 VALIDATION_ERROR`. Người dùng không chọn image hay cổng (REQ-CT-06, REQ-CT-11); trường thừa bị bỏ qua.
 
 ### REQ-BK-11 — Định dạng thời gian ở API
 - Mọi thời điểm gửi lên API MUST là ISO 8601 có múi giờ tường minh (`Z` hoặc `±HH:MM`). Chuỗi không có múi giờ (vd `2026-10-05T09:00:00`) MUST bị từ chối `400 INVALID_TIME` (`MISSING_TIMEZONE`), không được đoán theo múi giờ server.
@@ -211,11 +207,14 @@ Container MUST chỉ mount `/data/users/<username>` → `/workspace` (rw) và `/
 ### REQ-CT-04 — Bảo mật
 Container MUST chạy với UID:GID của user, MUST NOT `--privileged`, MUST NOT mount `docker.sock`, MUST dùng `--security-opt no-new-privileges`.
 
-### REQ-CT-05 — Cổng
-Container MUST chỉ publish các cổng trong dải của user (REQ-US-09, REQ-BK-10), và chỉ trên `127.0.0.1` (`-p 127.0.0.1:p:p`): cổng không mở ra mạng, chỉ tới được qua SSH tunnel (REQ-CT-10).
+### REQ-CT-05 — Mạng
+- Container MUST NOT publish cổng ra máy chủ (không có `-p`). Dịch vụ trong container (Jupyter, TensorBoard, VS Code server) chỉ tới được qua SSH thẳng vào container (REQ-CT-11).
+- Container MUST gắn vào mạng `CFG.CONTAINER_NETWORK` đã tắt giao tiếp giữa các container: container MUST NOT kết nối được tới container khác.
+- Dịch vụ nội bộ trên máy chủ (PostgreSQL, backend) MUST chỉ nghe trên `127.0.0.1`, nên container MUST NOT kết nối được tới chúng.
+- Container được truy cập Internet chiều ra (để cài gói).
 
-### REQ-CT-06 — Image
-Container MUST chỉ được tạo từ image thuộc `CFG.ALLOWED_IMAGES`.
+### REQ-CT-06 — Image chung
+Mọi container MUST được tạo từ một image chung `CFG.BASE_IMAGE`; người dùng không chọn image. Image MUST có `bash`, OpenSSH server, `rsync`, `tzdata`, conda. Container đặt `HOME=/workspace`, nên phần mềm người dùng tự cài (`pip`, `conda`, `~/.local`) được giữ qua các ca.
 
 ### REQ-CT-07 — Chạy song song
 Một phiên GPU và một phiên không GPU MUST chạy song song được, mỗi phiên giữ đúng giới hạn của mình.
@@ -223,16 +222,21 @@ Một phiên GPU và một phiên không GPU MUST chạy song song được, m�
 ### REQ-CT-08 — Vào container bằng SSH
 - User SSH bằng `<username>@<server>` (username theo REQ-US-05, mật khẩu theo REQ-US-10 hoặc SSH key theo REQ-US-13).
 - User MUST NOT có shell trên máy chủ. Mọi phiên SSH của nhóm `vmu-users` MUST đi qua `ForceCommand vmu-enter`.
-- Có ca đang chạy (container `running` mang label `vmu.user=<username>`): phiên SSH MUST vào đúng container đó, chạy với UID của user, thư mục `/workspace`, `HOME=/workspace`. Không có lệnh → login shell có TTY; có lệnh (vd `ssh user@server nvidia-smi`, VS Code Remote-SSH) → lệnh chạy trong container.
+- Có ca đang chạy (container `running` mang label `vmu.user=<username>`): phiên SSH MUST vào đúng container đó, chạy với UID của user, thư mục `/workspace`, `HOME=/workspace`. Không có lệnh → login shell có TTY; có lệnh (vd `ssh user@server nvidia-smi`) → lệnh chạy trong container.
 - User MUST NOT vào được container của người khác.
 - Không có ca đang chạy: MUST in thông báo tiếng Việt "Bạn chưa có ca đang chạy…" kèm địa chỉ Dashboard, thoát với mã khác 0, không mở shell nào.
-- sshd MUST tắt X11 forwarding, agent forwarding, `PermitTunnel`; chỉ cho TCP forwarding chiều local (REQ-CT-10).
+- sshd của máy chủ MUST tắt X11 forwarding, agent forwarding, TCP/stream forwarding và `PermitTunnel`. Chuyển tiếp cổng chỉ diễn ra bên trong container (REQ-CT-11).
 
 ### REQ-CT-09 — Chép file mọi lúc
 Chép file bằng SFTP (kể cả `scp` bản mới), `scp -t/-f` bản cũ và `rsync` MUST hoạt động **cả khi không có ca**. Các lệnh này MUST chạy trên máy chủ với quyền của user, bắt đầu tại `/data/users/<username>` (chính là `/workspace` trong container). Lệnh được tách thành tham số, MUST NOT đi qua shell (không chèn được lệnh khác). User MUST NOT đọc hoặc ghi được thư mục của user khác (thư mục `0700`).
 
-### REQ-CT-10 — Cổng chỉ qua SSH tunnel
-User MUST dùng được `ssh -L <p>:localhost:<p> <username>@<server>` với mọi cổng `p` trong dải của mình. sshd MUST từ chối forward tới cổng ngoài dải của user (`PermitOpen` riêng cho từng user). Từ máy khác trong mạng, `<server>:<p>` MUST không kết nối được.
+### REQ-CT-11 — SSH thẳng vào container (VS Code Remote-SSH)
+- `ssh <username>@<server> vmu-connect` (dùng làm `ProxyCommand`) MUST nối stdin/stdout vào một `sshd -i` chạy **trong container của chính user**, bằng UID của user (không root).
+- sshd trong container MUST chỉ chấp nhận SSH key của user (REQ-US-13, mount chỉ đọc), MUST NOT chấp nhận mật khẩu; cho phép chuyển tiếp cổng chiều local tới dịch vụ trong container (kể cả dịch vụ chỉ nghe trên `127.0.0.1`); tắt X11 và agent forwarding.
+- Container MUST có dòng `/etc/passwd`, `/etc/group` cho user (tên, UID, `HOME=/workspace`): sshd và `ssh-keygen` cần tra được user; terminal hiện đúng tên thay vì "I have no name!".
+- Host key của sshd trong container MUST giữ nguyên giữa các ca (lưu trong `/workspace/.vmu/`), để VS Code không cảnh báo đổi host key.
+- Không có ca đang chạy → như REQ-CT-08 (thông báo, mã thoát ≠ 0).
+- Với `~/.ssh/config` gồm `Host vmu` và `ProxyCommand ssh <username>@<server> vmu-connect`, VS Code Remote-SSH MUST kết nối được, mở terminal trong container và chuyển tiếp cổng tới Jupyter chạy trong container.
 
 ## 7. M5 — Lưu trữ (`ST`)
 
@@ -268,21 +272,21 @@ Container bị OOM MUST được hiển thị rõ lý do `OOM` trên Dashboard.
 ## 9. M7 — Dashboard (`UI`) và M8 — Triển khai (`DP`)
 
 - **REQ-UI-01** Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", không có giá trị mặc định.
-- **REQ-UI-02** Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca GPU.
+- **REQ-UI-02** Lịch MUST hiển thị cho mỗi khung giờ: ai đang dùng (username), ca nào dùng GPU, và khung đã đủ 2 phiên.
 - **REQ-UI-03** Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ hiểu.
-- **REQ-UI-04** User MUST thấy giờ GPU còn lại trong tuần.
-- **REQ-UI-05** User MUST thấy username, dải cổng, dung lượng đã dùng / quota.
+- **REQ-UI-05** Giao diện gọn: user thấy username và dung lượng đã dùng / quota. Dashboard MUST NOT hiển thị giờ GPU còn lại hay dải cổng (hạn mức GPU vẫn được áp dụng, vượt thì báo lỗi theo REQ-UI-03).
 - **REQ-UI-06** User MUST hủy ca và kết thúc sớm được từ giao diện.
 - **REQ-UI-07** Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy màn hình chờ duyệt.
 - **REQ-UI-08** Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu lại, nút "Tôi đã lưu".
 - **REQ-UI-09** Admin có trang duyệt, khóa, xóa tài khoản.
+- **REQ-UI-11** Trang Tài khoản & SSH MUST có hướng dẫn kết nối: lệnh `ssh`, đoạn `~/.ssh/config` cho VS Code (REQ-CT-11) có nút sao chép; user chưa có SSH key thì MUST được nhắc thêm key.
 - **REQ-UI-10** Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kèm nhãn "(GMT+7)", **bất kể múi giờ của trình duyệt**. Form đặt ca MUST chỉ cho chọn ngày + giờ tròn (00–23 giờ, giờ kết thúc cho phép "24:00" = 00:00 hôm sau), gửi lên API chuỗi có offset. Ca qua nửa đêm MUST hiển thị rõ ngày kết thúc (vd "22:00 – 02:00 (+1 ngày)").
 - **REQ-DP-01** Backend và Scheduler MUST chạy dưới systemd, tự khởi động lại khi crash và khi reboot.
 - **REQ-DP-02** Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hướng sang HTTPS.
 - **REQ-DP-03** Tổng giới hạn RAM của các container MUST ≤ RAM host − `HOST_RESERVED_MEMORY`; host MUST không bị OOM khi hai phiên dùng hết giới hạn.
-- **REQ-DP-04** Image không dùng quá `IMAGE_RETENTION` MUST bị dọn định kỳ (hằng ngày); image trong `ALLOWED_IMAGES` đang được ca hiệu lực dùng MUST NOT bị xóa.
+- **REQ-DP-04** Phiên bản cũ của image không dùng quá `IMAGE_RETENTION` MUST bị dọn định kỳ (hằng ngày); `BASE_IMAGE` hiện hành MUST NOT bị xóa.
 - **REQ-DP-05** MUST có tài liệu người dùng: đăng ký, SSH, lưu dữ liệu, tự sao lưu.
-- **REQ-DP-06** Đồng hồ server MUST được đồng bộ NTP (chrony hoặc systemd-timesyncd). PostgreSQL MUST đặt `timezone = 'UTC'`. Server cài gói `tzdata`; image trong `ALLOWED_IMAGES` MUST có `tzdata`.
+- **REQ-DP-06** Đồng hồ server MUST được đồng bộ NTP (chrony hoặc systemd-timesyncd). PostgreSQL MUST đặt `timezone = 'UTC'`. Server cài gói `tzdata`; `BASE_IMAGE` MUST có `tzdata`.
 
 ## 10. Quyết định đã chốt
 
@@ -301,7 +305,9 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 | Q9 | Đang 09:20 có đặt được ca "từ 9 giờ" không | Không (`IN_PAST`), bắt buộc đặt từ 10 giờ — REQ-BK-01, BK-T39 | ✅ Đã chốt 2026-09-28 |
 | Q10 | Người dùng vào container bằng cách nào | SSH `<username>@<server>` rồi tự vào container của mình (`ForceCommand`) — REQ-CT-08 | ✅ Đã chốt 2026-09-28 |
 | Q11 | Ngoài ca có chép file được không | Có: SFTP/scp/rsync chạy trên máy chủ trong `/data/users/<username>` — REQ-CT-09 | ✅ Đã chốt 2026-09-28 |
-| Q12 | Truy cập cổng (Jupyter, TensorBoard…) | Chỉ qua SSH tunnel, cổng container chỉ mở trên 127.0.0.1 — REQ-CT-05, REQ-CT-10 | ✅ Đã chốt 2026-09-28 |
+| Q12 | Truy cập cổng (Jupyter, TensorBoard…) | ~~SSH tunnel theo dải cổng~~ → thay bằng Q14 | Thay thế 2026-09-29 |
+| Q13 | Người dùng cài phần mềm thế nào | Một image chung `BASE_IMAGE`, không có root; tự cài `pip`/`conda`/`~/.local` vào `/workspace` (giữ qua các ca); thứ cần root thì admin thêm vào image — REQ-CT-06 | ✅ Đã chốt 2026-09-29 |
+| Q14 | Dùng VS Code từ máy cá nhân | SSH thẳng vào container qua `vmu-connect`; bỏ dải cổng riêng; container không mở cổng, cách ly mạng — REQ-CT-05, REQ-CT-11 | ✅ Đã chốt 2026-09-29 |
 
 ## Gate Bước 1
 
@@ -309,3 +315,10 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 - [x] Các tham số được liệt kê trong bảng cấu hình, không rải rác
 - [x] Đã có người review và đồng ý toàn bộ spec (Q1–Q9 đã chốt 2026-09-28)
 - [x] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review
+- [x] Thay đổi 2026-09-29 (Q13, Q14; xem mục 11) — chủ dự án xác nhận hướng trong buổi trao đổi 2026-09-29
+
+## 11. Lịch sử thay đổi
+
+| Ngày | Thay đổi |
+|---|---|
+| 2026-09-29 | Bỏ REQ-US-09 (dải cổng), REQ-CT-10 (tunnel theo dải cổng), REQ-UI-04 (hiển thị giờ GPU còn lại); bỏ `PORT_BASE`, `PORT_RANGE_SIZE`, `ALLOWED_IMAGES`. Sửa REQ-BK-10, REQ-CT-05, REQ-CT-06, REQ-CT-08, REQ-UI-02, REQ-UI-05, REQ-DP-04, REQ-DP-06. Thêm REQ-CT-11, REQ-UI-11, `BASE_IMAGE`, `CONTAINER_NETWORK`. ID đã bỏ không dùng lại. |

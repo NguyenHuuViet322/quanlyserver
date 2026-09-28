@@ -54,6 +54,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
+/* Thuộc tính hidden luôn thắng display của component */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -126,7 +128,8 @@ code, pre, kbd { font-family: var(--mono); font-size: 0.9em; }
 }
 .topbar h1 { font-size: var(--fs-lg); }
 .topbar-actions { display: flex; align-items: center; gap: var(--sp-2); }
-.content { padding: var(--sp-8); max-width: 1280px; width: 100%; }
+.content { padding: var(--sp-6) var(--sp-8) var(--sp-8); width: 100%; min-width: 0; }
+.banner { margin-bottom: var(--sp-4); }
 .tz-note {
   display: flex; align-items: center; gap: var(--sp-2);
   margin-bottom: var(--sp-6); padding: var(--sp-3) var(--sp-4);
@@ -251,31 +254,62 @@ fieldset > legend { padding: 0; margin-bottom: var(--sp-2); }
 .alert-info { background: var(--brand-softer); border-color: var(--brand-soft); color: var(--brand-strong); }
 .alert-success { background: var(--success-soft); border-color: #b7e2c8; color: #05603a; }
 
-/* ---------- Lịch ---------- */
+/* ---------- Lịch (trang chính) ---------- */
+.cal-card { display: flex; flex-direction: column; overflow: hidden; }
+.cal-toolbar { display: flex; align-items: center; gap: var(--sp-4) var(--sp-6); flex-wrap: wrap; padding: var(--sp-4) var(--sp-6); border-bottom: 1px solid var(--border); }
+.cal-title { flex: 1 1 260px; min-width: 0; }
 .cal-legend { display: flex; flex-wrap: wrap; gap: var(--sp-4); font-size: var(--fs-xs); color: var(--text-muted); }
 .cal-legend span { display: inline-flex; align-items: center; gap: 6px; }
-.swatch { display: inline-block; width: 22px; height: 12px; border-radius: 3px; }
-.swatch.free { background: #fff; box-shadow: inset 0 0 0 1px var(--border-strong); }
-.cal-scroll { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
-.cal { display: grid; grid-template-columns: 56px repeat(7, minmax(96px, 1fr)); min-width: 760px; background: var(--surface); font-size: var(--fs-xs); }
-.cal-h { position: sticky; top: 0; padding: var(--sp-2); text-align: center; font-weight: 600; background: var(--surface); border-bottom: 1px solid var(--border); }
-.cal-h.today { color: var(--brand-strong); }
-.cal-h small { display: block; font-weight: 500; color: var(--text-muted); }
-.cal-hour { padding: 0 var(--sp-2); text-align: right; color: var(--text-subtle); font-variant-numeric: tabular-nums; line-height: 32px; border-right: 1px solid var(--border); }
-.slot {
-  height: 32px; margin: 0; padding: 0 6px;
-  display: flex; align-items: center; justify-content: space-between; gap: 4px;
-  font: inherit; font-size: 11px; text-align: left;
-  border: 0; border-bottom: 1px solid #eef0f5; border-right: 1px solid #eef0f5;
-  background: var(--surface); color: var(--text-subtle); cursor: pointer;
+.swatch { display: inline-block; width: 18px; height: 12px; border-radius: 3px; }
+.swatch.mine { background: var(--brand); }
+.swatch.other { background: #e9ecf4; box-shadow: inset 3px 0 0 #9aa3b5; }
+.gpu-chip { display: inline-block; padding: 0 5px; border-radius: 4px; background: #0f172a; color: #fff; font-size: 10px; font-weight: 700; line-height: 16px; letter-spacing: 0.02em; }
+.cal-nav { display: flex; align-items: center; gap: var(--sp-1); }
+.cal-nav strong { min-width: 118px; text-align: center; font-size: var(--fs-sm); }
+
+.cal-scroll { max-height: calc(100dvh - 210px); min-height: 420px; overflow: auto; overscroll-behavior: contain; }
+.cal { display: grid; grid-template-rows: auto calc(var(--cal-row, 48px) * 24); background: var(--surface); }
+.cal-corner, .cal-head { position: sticky; top: 0; z-index: 3; background: var(--surface); border-bottom: 1px solid var(--border); }
+.cal-head { display: flex; flex-direction: column; align-items: center; padding: var(--sp-2) 0; font-size: var(--fs-xs); color: var(--text-muted); border-left: 1px solid var(--border); }
+.cal-head strong { font-size: var(--fs-md); color: var(--text); }
+.cal-head.today strong { color: #fff; background: var(--brand); border-radius: 999px; padding: 0 10px; }
+.cal-hours { display: grid; grid-template-rows: repeat(24, 1fr); }
+.cal-hour { padding: 2px 8px 0 0; text-align: right; font-size: 11px; color: var(--text-subtle); border-top: 1px solid transparent; }
+.cal-col { position: relative; display: grid; grid-template-rows: repeat(24, 1fr); border-left: 1px solid var(--border); }
+.cal-col.today { background: var(--brand-softer); }
+.cal-cell { display: block; width: 100%; margin: 0; padding: 0; border: 0; border-top: 1px solid #eef0f5; background: transparent; cursor: pointer; }
+.cal-cell:hover:not(:disabled) { background: var(--brand-soft); }
+.cal-cell:hover:not(:disabled)::after { content: "+"; display: grid; place-items: center; height: 100%; color: var(--brand); font-size: 18px; font-weight: 600; }
+.cal-cell:disabled { cursor: default; }
+.cal-cell.past { background: repeating-linear-gradient(0deg, rgb(15 23 42 / 0.025), rgb(15 23 42 / 0.025)); }
+.cal-block {
+  position: absolute; z-index: 1; overflow: hidden;
+  display: flex; flex-direction: column; gap: 1px; padding: 4px 8px;
+  border-radius: 8px; font-size: var(--fs-xs); line-height: 1.3;
+  background: #e9ecf4; color: #1f2937; box-shadow: inset 3px 0 0 #9aa3b5;
 }
-.slot:hover:not(:disabled) { background: var(--brand-softer); color: var(--brand-strong); }
-.slot.s1 { background: #e4e7fd; color: #2c3499; }
-.slot.full { background: repeating-linear-gradient(135deg, #d9dce4 0 6px, #f0f1f5 6px 12px); color: #394253; font-weight: 600; cursor: not-allowed; }
-.slot.past { background: #fafafb; color: #b3b9c6; cursor: not-allowed; }
-.slot.selected { background: var(--brand); color: #fff; }
-.slot .gpu { padding: 0 4px; border-radius: 4px; background: var(--brand); color: #fff; font-weight: 700; font-size: 10px; }
-.slot.selected .gpu { background: #fff; color: var(--brand); }
+.cal-block.gpu { box-shadow: inset 3px 0 0 #0f172a; }
+.cal-block.mine { background: var(--brand); color: #fff; box-shadow: 0 1px 3px rgb(31 43 208 / 0.35); }
+.cal-block.mine .gpu-chip { background: #fff; color: var(--brand-strong); }
+.cal-block .who { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal-block .when { display: flex; align-items: center; gap: 5px; min-width: 0; white-space: nowrap; }
+.cal-block .when > span { opacity: 0.85; overflow: hidden; text-overflow: ellipsis; }
+.cal-block .gpu-chip { flex: none; }
+.cal-block.short { flex-direction: row; align-items: center; gap: 8px; padding-block: 0; }
+.cal-block.short .when > span { display: none; }
+.cal-now { position: absolute; left: 0; right: 0; z-index: 2; height: 2px; background: var(--vmu-red); pointer-events: none; }
+.cal-now::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--vmu-red); }
+
+/* ---------- Kết nối ---------- */
+.connect-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr); gap: var(--sp-6); align-items: start; }
+/* Phần tử con của grid/flex mặc định không co nhỏ hơn nội dung: dòng lệnh dài sẽ đẩy cả trang tràn ngang */
+.connect-grid > *, .connect-grid .card, .steps li { min-width: 0; }
+.steps { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--sp-3); }
+.steps li::marker { color: var(--brand); font-weight: 700; }
+.codebox.multi { align-items: flex-start; margin-top: var(--sp-2); }
+.codebox pre { flex: 1; min-width: 0; margin: 0; padding: var(--sp-2) 0; font: inherit; white-space: pre; overflow-x: auto; }
+.label-strong { font-weight: 600; font-size: var(--fs-sm); }
+.compact { margin: 0; padding-left: 1.1rem; display: grid; gap: var(--sp-1); font-size: var(--fs-sm); color: var(--text-muted); }
 
 /* ---------- Bảng / danh sách ---------- */
 .table-wrap { overflow-x: auto; }
@@ -304,7 +338,7 @@ tr:last-child td { border-bottom: 0; }
 .k-SOFT_QUOTA .icon { color: var(--warning); }
 
 .codebox { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-4); background: #0f172a; color: #e5e9f5; border-radius: var(--radius); font-family: var(--mono); font-size: var(--fs-sm); }
-.codebox code { flex: 1; overflow-wrap: anywhere; }
+.codebox code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .codebox .btn { color: #e5e9f5; }
 .codebox .btn:hover { background: rgb(255 255 255 / 0.1); color: #fff; }
 
@@ -354,6 +388,7 @@ dialog[open] { animation: pop var(--dur) var(--ease-out); }
 
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px) {
+  .connect-grid { grid-template-columns: 1fr; }
   .grid-main { grid-template-columns: 1fr; }
   .grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -367,6 +402,15 @@ dialog[open] { animation: pop var(--dur) var(--ease-out); }
   .nav a[aria-current="page"] { box-shadow: inset 0 -3px 0 var(--brand); }
   .topbar { padding: var(--sp-3) var(--sp-4); position: static; }
   .content { padding: var(--sp-4); }
+  .cal-toolbar { padding: var(--sp-3) var(--sp-4); gap: var(--sp-3); }
+  .cal-title .subtle { display: none; }
+  .cal-nav { margin-right: auto; gap: 0; }
+  .cal-nav strong { min-width: 0; }
+  .cal-nav .btn-icon { width: 36px; }
+  .cal-nav strong { font-size: var(--fs-xs); }
+  #book-btn { padding: 0 var(--sp-4); }
+  .cal-legend { order: 3; width: 100%; gap: var(--sp-3); }
+  .cal-scroll { max-height: none; }
   .grid-3, .grid-2, .field-row { grid-template-columns: 1fr; }
   .choice-group { grid-template-columns: 1fr; }
   .card-pad, .card-body { padding: var(--sp-4); }

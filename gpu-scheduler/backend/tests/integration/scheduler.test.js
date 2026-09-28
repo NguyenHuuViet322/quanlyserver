@@ -8,7 +8,6 @@ const { createFakeDocker } = require('../helpers/fake-docker');
 const { defaults } = require('../../src/config');
 const { runTick, reconcile } = require('../../src/scheduler/tick');
 
-const IMAGE = 'vmu/pytorch:2.8-cuda12.8';
 const vn = (s) => `${s}+07:00`;
 
 describe('M3 — Scheduler', () => {
@@ -24,7 +23,6 @@ describe('M3 — Scheduler', () => {
     docker = createFakeDocker();
     cfg = { ...defaults, logDir: fs.mkdtempSync(path.join(os.tmpdir(), 'vmu-logs-')) };
     admin = await t.adminCookie('quantri@vimaru.edu.vn');
-    await t.db.query('INSERT INTO images (name) VALUES ($1)', [IMAGE]);
     const { body } = await t.login('a@vimaru.edu.vn');
     const res = await t.req('POST', `/api/admin/users/${body.user.id}/approve`, admin);
     A = { ...res.json().user, cookie: (await t.login('a@vimaru.edu.vn')).cookie };
@@ -38,7 +36,7 @@ describe('M3 — Scheduler', () => {
   const tick = () => runTick(env());
   const code = (res) => res.json().error?.code;
   async function book(start = '2026-10-05T09:00:00', end = '2026-10-05T11:00:00', use_gpu = true) {
-    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn(start), end: vn(end), use_gpu, image: IMAGE, ports: [10001] });
+    const res = await t.req('POST', '/api/bookings', A.cookie, { start: vn(start), end: vn(end), use_gpu });
     assert.equal(res.statusCode, 201, res.body);
     return res.json();
   }
@@ -65,7 +63,8 @@ describe('M3 — Scheduler', () => {
     const w = await notes('END_WARNING');
     assert.equal(w.length, 1);
     assert.equal(w[0].booking_id, b.id);
-    const execs = docker.calls.filter((c) => c[0] === 'exec');
+    // Chỉ đếm lệnh in cảnh báo (không tính lệnh thêm user bằng root lúc khởi chạy — CT-T23)
+    const execs = docker.calls.filter((c) => c[0] === 'exec' && c[3]?.user !== '0');
     assert.equal(execs.length, 1);
     const script = execs[0][2].join(' ');
     assert.ok(script.includes('/dev/pts/'), script);
@@ -208,6 +207,28 @@ describe('M3 — Scheduler', () => {
     t.clock.set('2026-10-05T04:00:00Z');
     await tick();
     assert.equal((await row(b.id)).status, 'completed');
+  });
+
+  test('CT-T23 sau docker run, thêm user vào /etc/passwd và /etc/group của container bằng root; restart thì thêm lại', async () => {
+    const b = await started();
+    const name = `vmu-bk-${b.id}`;
+    const rootExecs = () => docker.calls.filter((c) => c[0] === 'exec' && c[1] === name && c[3]?.user === '0');
+    assert.equal(rootExecs().length, 1);
+    const script = rootExecs()[0][2].join(' ');
+    assert.ok(script.includes(`${A.username}:x:${A.uid}:${A.uid}::/workspace:/bin/bash`), script);
+    assert.ok(script.includes('/etc/passwd') && script.includes('/etc/group'), script);
+    assert.ok(script.includes(`${A.username}:x:${A.uid}:`), script);
+    // Lệnh root chạy ngay sau docker run, trước mọi exec khác vào container
+    const idxRun = docker.calls.findIndex((c) => c[0] === 'run');
+    const idxExec = docker.calls.findIndex((c) => c[0] === 'exec' && c[1] === name);
+    assert.ok(idxExec > idxRun);
+    // Container thoát, user khởi động lại → container mới cũng được thêm user
+    docker.exit(name, { code: 1 });
+    t.clock.set(vn('2026-10-05T09:10:00'));
+    await tick();
+    assert.equal((await t.req('POST', `/api/bookings/${b.id}/restart`, A.cookie)).statusCode, 202);
+    await tick();
+    assert.equal(rootExecs().length, 2);
   });
 
   test('MN-T04 container bị OOM → exited, exit_reason OOM, có thông báo OOM', async () => {

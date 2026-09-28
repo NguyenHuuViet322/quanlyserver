@@ -25,8 +25,7 @@ export async function renderBookings(view) {
     <div class="booking" data-booking="${b.id}">
       <div class="stack-sm">
         <div class="booking-time">${esc(fmtRange(b.start, b.end))}</div>
-        <div class="booking-meta">${statusTag(b.status)}${gpuTag(b.use_gpu)}<span>${esc(b.image)}</span>
-          ${b.ports.length ? `<span class="num">cổng ${b.ports.join(', ')}</span>` : ''}
+        <div class="booking-meta">${statusTag(b.status)}${gpuTag(b.use_gpu)}
           ${b.status === 'scheduled' ? `<span>${esc(relative(b.start, now))}</span>` : ''}
           ${b.status === 'completed' && b.use_gpu ? `<span class="num">${b.gpu_hours_used} giờ GPU</span>` : ''}</div>
         ${b.exit_reason === 'OOM' ? `<div class="alert alert-danger">${icon('alert')}<span>Container bị dừng vì vượt giới hạn RAM (OOM). Giảm batch size hoặc dữ liệu nạp vào bộ nhớ rồi khởi động lại.</span></div>` : ''}

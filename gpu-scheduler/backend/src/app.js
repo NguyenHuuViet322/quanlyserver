@@ -123,7 +123,6 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
   app.get('/api/me', async (req) => {
     const me = users.publicUser(req.user, cfg);
     if (req.user.status === 'active') {
-      me.gpu_quota = await bookings.gpuQuotaOf(ctx, req.user);
       me.storage = storageOf(req.user, cfg);
     }
     return me;
@@ -160,19 +159,16 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
   // --- Đặt lịch — REQ-BK-01..12 ---
   const bookingBody = {
     type: 'object',
-    required: ['start', 'end', 'use_gpu', 'image'],
+    required: ['start', 'end', 'use_gpu'],
     properties: {
       start: { type: 'string' },
       end: { type: 'string' },
       use_gpu: { type: 'boolean' },
-      image: { type: 'string' },
-      ports: { type: 'array', maxItems: 20, items: { type: 'integer' } },
     },
   };
   const bookingId = (req) => Number(req.params.id) || 0;
 
-  app.get('/api/images', async () => bookings.listImages(ctx));
-  app.get('/api/calendar', async (req) => bookings.calendar(ctx, req.query));
+  app.get('/api/calendar', async (req) => bookings.calendar(ctx, req.user, req.query));
   app.get('/api/bookings', async (req) => bookings.listBookings(ctx, req.user, req.query));
   app.get('/api/bookings/:id', async (req) => bookings.getBooking(ctx, req.user, bookingId(req)));
   app.post('/api/bookings', { schema: { body: bookingBody } }, async (req, reply) =>
@@ -207,10 +203,6 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
   app.post('/api/admin/users/:id/lock', async (req) => ({ user: await users.lockUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/unlock', async (req) => ({ user: await users.unlockUser(ctx, req.user.id, idParam(req)) }));
   app.get('/api/admin/audit', async (req) => monitoring.listAudit(ctx, req.query));
-  app.get('/api/admin/images', async () => bookings.listImages(ctx, { all: true }));
-  app.put('/api/admin/images', {
-    schema: { body: { type: 'object', required: ['images'], properties: { images: { type: 'array', items: { type: 'string', minLength: 1 } } } } },
-  }, async (req) => bookings.setImages(ctx, req.user, req.body.images));
   app.delete('/api/admin/users/:id', async (req) => ({ user: await users.deleteUser(ctx, req.user.id, idParam(req)) }));
 
   return app;

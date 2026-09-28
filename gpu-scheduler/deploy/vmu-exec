@@ -14,14 +14,23 @@ user=${SUDO_USER:-}
 uid=$(id -u "$user")
 (( uid >= UID_MIN )) || { echo "vmu-exec: từ chối user hệ thống" >&2; exit 2; }
 
+mode=exec
+if [[ "${1:-}" == "--connect" ]]; then mode=connect; shift; fi
 [[ "${1:-}" == "--" ]] && shift
 cmd="${1:-}"
 
 container=$(docker ps --filter "label=vmu.user=$user" --filter status=running --format '{{.Names}}' | head -n 1)
 if [[ -z "$container" ]]; then
-  echo "Bạn chưa có ca đang chạy. Hãy đặt ca hoặc xem lịch tại $DASHBOARD_URL"
-  echo "Chép file (sftp/scp/rsync) vẫn dùng được khi không có ca."
+  # stderr: ở chế độ --connect, stdout là luồng giao thức SSH (ProxyCommand) nên không in gì ra đó
+  echo "Bạn chưa có ca đang chạy. Hãy đặt ca hoặc xem lịch tại $DASHBOARD_URL" >&2
+  echo "Chép file (sftp/scp/rsync) vẫn dùng được khi không có ca." >&2
   exit 1
+fi
+
+# REQ-CT-11: stdin/stdout của phiên SSH ngoài trở thành một phiên SSH mới với sshd trong container
+# (chạy bằng UID của user, chỉ nhận SSH key, chuyển tiếp cổng diễn ra bên trong container)
+if [[ "$mode" == connect ]]; then
+  exec docker exec -i -u "$uid:$uid" -e HOME=/workspace "$container" /usr/local/sbin/vmu-sshd
 fi
 
 opts=(-i -u "$uid:$uid" -w /workspace -e HOME=/workspace -e "TERM=${TERM:-xterm}")

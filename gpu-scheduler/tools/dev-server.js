@@ -19,7 +19,6 @@ const PORT = Number(process.env.DEV_PORT || 4174);
 const DATABASE_URL = process.env.DEV_DATABASE_URL || 'postgres://postgres:test@localhost:55432/vmu_dev';
 const HOUR = 3600 * 1000;
 const GiB = 1024 ** 3;
-const IMAGES = ['vmu/pytorch:2.8-cuda12.8', 'vmu/tensorflow:2.20-gpu', 'vmu/python:3.12-slim'];
 
 const ACCOUNTS = [
   { email: 'quantri@vimaru.edu.vn', name: 'Quản trị viên', role: 'admin', note: 'Admin: duyệt/khóa tài khoản, image, nhật ký' },
@@ -48,7 +47,6 @@ async function main() {
   });
 
   // ---- Dữ liệu mẫu ----
-  for (const name of IMAGES) await db.query('INSERT INTO images (name) VALUES ($1)', [name]);
   const byEmail = {};
   for (const a of ACCOUNTS) {
     const u = await users.upsertFromGoogle(ctx, {
@@ -75,20 +73,19 @@ async function main() {
   const book = async (email, start, end, useGpu, status = 'scheduled', extra = {}) => {
     const ended = status === 'completed';
     await db.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, image, status, ports, actual_start_at, actual_end_at, exit_reason)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
-      [byEmail[email].id, start, end, useGpu, extra.image || IMAGES[0], status, extra.ports || [],
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at, actual_end_at, exit_reason)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [byEmail[email].id, start, end, useGpu, status,
         status === 'running' || ended ? start : null, ended ? (extra.actualEnd || end) : null, extra.exitReason || null]);
   };
   // Đang chạy
-  const vietnhPorts = require('../backend/src/users/ports').portRange(byEmail['vietnh@vimaru.edu.vn'].slot_index, cfg);
-  await book('vietnh@vimaru.edu.vn', at(-1), at(2), true, 'running', { ports: [vietnhPorts.from + 1] });
-  await book('hoanglm@vimaru.edu.vn', at(-1), at(1), false, 'running', { image: IMAGES[2] });
+  await book('vietnh@vimaru.edu.vn', at(-1), at(2), true, 'running');
+  await book('hoanglm@vimaru.edu.vn', at(-1), at(1), false, 'running');
   // Sắp tới
   await book('vietnh@vimaru.edu.vn', day(1, 9), day(1, 12), false);
-  await book('tranthu@vimaru.edu.vn', day(1, 13), day(1, 17), true, 'scheduled', { image: IMAGES[1] });
+  await book('tranthu@vimaru.edu.vn', day(1, 13), day(1, 17), true);
   await book('hoanglm@vimaru.edu.vn', day(2, 8), day(2, 12), true);
-  await book('tranthu@vimaru.edu.vn', day(2, 8), day(2, 10), false, 'scheduled', { image: IMAGES[2] });
+  await book('tranthu@vimaru.edu.vn', day(2, 8), day(2, 10), false);
   await book('vietnh@vimaru.edu.vn', day(3, 20), day(4, 2), true); // qua nửa đêm
   // Lịch sử
   await book('vietnh@vimaru.edu.vn', day(-1, 8), day(-1, 11), true, 'completed');

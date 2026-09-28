@@ -9,8 +9,6 @@ const defaults = Object.freeze({
   usernameMaxLength: 32,
   reservedUsernames: ['root', 'admin', 'docker', 'nginx', 'postgres', 'nobody', 'daemon', 'bin', 'sys', 'www-data', 'ubuntu'],
   passwordLength: 16,
-  portBase: 10000,
-  portRangeSize: 100,
   uidBase: 2001,
   maxConcurrentSessions: 2,
   maxGpuSessions: 1,
@@ -31,6 +29,9 @@ const defaults = Object.freeze({
   userQuotaHardBytes: 100 * GiB,
   userQuotaGraceMs: 7 * DAY,
   containerWritableLayer: '20G',
+  baseImage: 'vmu/base:cuda12.8', // image chung (REQ-CT-06) — biến môi trường BASE_IMAGE
+  containerNetwork: 'vmu-net', // mạng tắt giao tiếp giữa các container (REQ-CT-05)
+  homeRoot: '/home', // ~/.ssh/authorized_keys của user trên máy chủ, mount vào container (REQ-CT-11)
   dataRoot: '/data', // /data/users/<username>, /data/shared
   logDir: '/var/log/vmu/bookings', // log container sau khi ca kết thúc
   imageRetentionMs: 30 * DAY,

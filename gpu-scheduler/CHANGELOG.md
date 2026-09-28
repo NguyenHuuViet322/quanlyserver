@@ -17,8 +17,12 @@
 - Thông báo: `GET /notifications` (`?unread=1`, `?limit`), `POST /notifications/:id/read`, `POST /notifications/read-all`.
 - M7 Dashboard (`frontend/src/`): đăng nhập Google, chờ duyệt, mật khẩu lần đầu, tổng quan, lịch 8 ngày × 24 giờ theo giờ VN, form đặt ca theo giờ tròn, ca của tôi (hủy / kết thúc sớm / khởi động lại / log / số liệu), tài khoản & SSH key, quản trị (tài khoản, image, nhật ký), chuông thông báo. Màu theo logo VMU. Test e2e Playwright (Edge trên Windows).
 - `GET /api/config`; backend phục vụ file tĩnh khi có `STATIC_DIR`.
+- SSH thẳng vào container cho VS Code Remote-SSH (`vmu-connect`, sshd trong container chạy bằng UID của user, chỉ nhận key); Scheduler thêm user vào `/etc/passwd` của container. Image chung `deploy/base-image/`.
+- Dashboard: lịch là trang chính, khối ca có tên người dùng, đặt ca bằng hộp thoại; trang Kết nối (VS Code, SSH key, dung lượng); xem từng ngày trên điện thoại; dàn hết chiều rộng.
 
 ### Thay đổi
+- Bỏ chọn image (một image chung `BASE_IMAGE`) và dải cổng riêng; container không mở cổng, gắn mạng `vmu-net` tắt giao tiếp giữa container; sshd máy chủ tắt mọi chuyển tiếp cổng.
+- Dashboard không hiển thị giờ GPU còn lại và dải cổng (hạn mức GPU vẫn áp dụng).
 - Kết nối PostgreSQL đặt `timezone=UTC` qua tham số kết nối.
 - Cổng container chỉ mở trên `127.0.0.1`, truy cập qua SSH tunnel.
 - Cảnh báo hết ca in ra terminal SSH trong container.

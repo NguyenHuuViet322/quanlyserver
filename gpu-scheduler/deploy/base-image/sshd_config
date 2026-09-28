@@ -1,0 +1,19 @@
+# sshd trong container — REQ-CT-11. Chạy bằng UID của user qua `sshd -i` (vmu-sshd), không nghe cổng nào.
+HostKey /workspace/.vmu/ssh_host_ed25519_key
+AuthorizedKeysFile /etc/vmu/authorized_keys
+PubkeyAuthentication yes
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+UsePAM no
+StrictModes no
+PermitRootLogin no
+AllowTcpForwarding local
+AllowStreamLocalForwarding no
+GatewayPorts no
+X11Forwarding no
+AllowAgentForwarding no
+PermitTunnel no
+PermitUserEnvironment no
+PidFile none
+PrintMotd no
+Subsystem sftp internal-sftp

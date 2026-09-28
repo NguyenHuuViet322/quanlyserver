@@ -3,10 +3,9 @@ import { get, post, ApiError } from './api.js';
 import { esc, icon, toast } from './ui.js';
 import { TZ_LABEL, browserIsVN, fmtDateTime, relative } from './time.js';
 import { renderLogin, renderPending, renderFirstPassword } from './views/auth.js';
-import { renderOverview } from './views/overview.js';
 import { renderCalendar } from './views/calendar.js';
 import { renderBookings } from './views/bookings.js';
-import { renderAccount } from './views/account.js';
+import { renderConnect } from './views/connect.js';
 import { renderAdmin } from './views/admin.js';
 
 const root = document.getElementById('app');
@@ -14,10 +13,9 @@ const root = document.getElementById('app');
 export const state = { config: null, me: null };
 
 const ROUTES = {
-  '': { title: 'Tổng quan', icon: 'home', render: renderOverview },
-  lich: { title: 'Lịch & đặt ca', icon: 'calendar', render: renderCalendar },
+  '': { title: 'Lịch', icon: 'calendar', render: renderCalendar },
   ca: { title: 'Ca của tôi', icon: 'list', render: renderBookings },
-  'tai-khoan': { title: 'Tài khoản & SSH', icon: 'user', render: renderAccount },
+  'ket-noi': { title: 'Kết nối', icon: 'terminal', render: renderConnect },
   'quan-tri': { title: 'Quản trị', icon: 'shield', render: renderAdmin, admin: true },
 };
 
@@ -90,6 +88,7 @@ function renderShell() {
         </header>
         <main class="content" id="main" tabindex="-1">
           ${browserIsVN() ? '' : `<div class="tz-note" role="note" data-testid="tz-note">${icon('globe')}<span>Mọi giờ trên trang là <strong>giờ Việt Nam (${TZ_LABEL})</strong>, không theo múi giờ máy của bạn.</span></div>`}
+          <div id="storage-alert"></div>
           <div id="view"></div>
         </main>
       </div>
@@ -124,7 +123,18 @@ async function route() {
       <div><button class="btn btn-secondary btn-sm" id="retry-view">Thử lại</button></div></div></div>`;
     document.getElementById('retry-view').onclick = route;
   }
+  renderStorageAlert();
   document.getElementById('main').focus({ preventScroll: true });
+}
+
+// REQ-ST-02: chỉ hiện khi đã vượt soft quota
+function renderStorageAlert() {
+  const s = state.me?.storage;
+  const box = document.getElementById('storage-alert');
+  if (!box) return;
+  box.innerHTML = s?.over_soft_since
+    ? `<div class="alert alert-danger banner" role="alert">${icon('disk')}<span>Thư mục của bạn đã vượt ${Math.round(s.soft_bytes / 1024 ** 3)} GiB. Hãy dọn dẹp trước <strong class="num">${esc(fmtDateTime(s.grace_deadline))} (${TZ_LABEL})</strong>, sau đó sẽ không ghi thêm được.</span></div>`
+    : '';
 }
 
 // ---- Thông báo (chuông) ----

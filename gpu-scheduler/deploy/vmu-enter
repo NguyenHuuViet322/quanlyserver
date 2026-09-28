@@ -2,6 +2,7 @@
 # ForceCommand của sshd cho nhóm vmu-users — docs/10-design/ssh.md, REQ-CT-08, REQ-CT-09.
 # Chạy bằng quyền của user vừa SSH vào.
 #   - Lệnh chép file (sftp, scp -t/-f, rsync --server): chạy trên máy chủ trong /data/users/<username>
+#   - Đúng một từ "vmu-connect": nối vào sshd trong container của chính user (VS Code, REQ-CT-11)
 #   - Còn lại: sudo vmu-exec để vào container của chính user
 # Lệnh gốc KHÔNG BAO GIỜ được đưa vào shell trên máy chủ: chỉ tách theo khoảng trắng thành tham số.
 # Cài: install -o root -g root -m 0755 deploy/vmu-enter /usr/local/bin/vmu-enter
@@ -39,6 +40,11 @@ if is_file_transfer; then
     scp) exec scp "${argv[@]:1}" ;;
     *) exec "$SFTP_SERVER" -d "$home" ;;
   esac
+fi
+
+# REQ-CT-11: dùng làm ProxyCommand của VS Code / ssh (ssh … vmu-connect)
+if [[ "$cmd" == "vmu-connect" ]]; then
+  exec sudo -n /usr/local/sbin/vmu-exec --connect
 fi
 
 exec sudo -n /usr/local/sbin/vmu-exec -- "$cmd"

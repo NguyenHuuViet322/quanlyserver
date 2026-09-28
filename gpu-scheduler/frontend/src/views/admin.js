@@ -1,5 +1,5 @@
-// Quản trị — REQ-UI-09, REQ-US-07, REQ-US-15, REQ-US-16, REQ-MN-03, REQ-CT-06
-import { get, post, put, del } from '../api.js';
+// Quản trị — REQ-UI-09, REQ-US-07, REQ-US-15, REQ-US-16, REQ-MN-03
+import { get, post, del } from '../api.js';
 import { esc, icon, toast, confirmDialog, withBusy, errorMessage } from '../ui.js';
 import { fmtDateTime } from '../time.js';
 
@@ -12,21 +12,20 @@ const USER_STATUS = {
 const ACTION_LABEL = {
   'booking.create': 'Đặt ca', 'booking.cancel': 'Hủy ca', 'booking.end': 'Kết thúc sớm', 'booking.restart': 'Khởi động lại',
   'user.approve': 'Duyệt tài khoản', 'user.lock': 'Khóa tài khoản', 'user.unlock': 'Mở khóa', 'user.delete': 'Xóa tài khoản',
-  'user.purge': 'Xóa hẳn dữ liệu', 'user.password_reset': 'Cấp lại mật khẩu', 'user.promote_admin': 'Cấp quyền admin', 'images.set': 'Cập nhật image',
+  'user.purge': 'Xóa hẳn dữ liệu', 'user.password_reset': 'Cấp lại mật khẩu', 'user.promote_admin': 'Cấp quyền admin', 
 };
 
 export async function renderAdmin(view, ctx) {
   const tab = new URLSearchParams(location.hash.split('?')[1] || '').get('tab') || 'users';
   view.innerHTML = `
     <div class="tabs" role="tablist" aria-label="Quản trị">
-      ${[['users', 'Tài khoản'], ['images', 'Image'], ['audit', 'Nhật ký']].map(([k, l]) => `<button role="tab" aria-selected="${k === tab}" data-tab="${k}">${l}</button>`).join('')}
+      ${[['users', 'Tài khoản'], ['audit', 'Nhật ký']].map(([k, l]) => `<button role="tab" aria-selected="${k === tab}" data-tab="${k}">${l}</button>`).join('')}
     </div>
     <div id="tab-panel" role="tabpanel"></div>`;
   view.querySelectorAll('[data-tab]').forEach((b) => {
     b.onclick = () => { location.hash = `#/quan-tri?tab=${b.dataset.tab}`; };
   });
   const panel = view.querySelector('#tab-panel');
-  if (tab === 'images') return renderImages(panel);
   if (tab === 'audit') return renderAudit(panel);
   return renderUsers(panel, ctx);
 }
@@ -44,11 +43,10 @@ async function renderUsers(panel, ctx, filter = 'pending') {
           ${Object.entries(USER_STATUS).map(([s, [l]]) => `<button class="btn btn-sm ${s === filter ? 'btn-primary' : 'btn-secondary'}" data-filter="${s}" aria-pressed="${s === filter}">${l} <span class="num">(${counts[s]})</span></button>`).join('')}
         </div></div>
       ${list.length ? `<div class="table-wrap"><table>
-        <thead><tr><th>Người dùng</th><th>Tên đăng nhập</th><th>Dải cổng</th><th>Trạng thái</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
+        <thead><tr><th>Người dùng</th><th>Tên đăng nhập</th><th>Trạng thái</th><th><span class="sr-only">Thao tác</span></th></tr></thead>
         <tbody>${list.map((u) => `<tr data-user="${u.id}">
           <td><strong>${esc(u.name)}</strong>${u.role === 'admin' ? ' <span class="tag tag-brand">Admin</span>' : ''}<div class="subtle">${esc(u.email)}</div></td>
           <td class="num"><code>${esc(u.username)}</code></td>
-          <td class="num">${u.ports ? `${u.ports.from}–${u.ports.to}` : '—'}</td>
           <td><span class="tag ${USER_STATUS[u.status][1]}">${USER_STATUS[u.status][0]}</span></td>
           <td><div class="actions">
             ${u.status === 'pending' ? `<button class="btn btn-primary btn-sm" data-act="approve" data-id="${u.id}">${icon('check', 'icon-sm')}Duyệt</button>` : ''}
@@ -79,31 +77,6 @@ async function renderUsers(panel, ctx, filter = 'pending') {
       }
     };
   });
-}
-
-async function renderImages(panel) {
-  const images = await get('/admin/images');
-  panel.innerHTML = `
-    <section class="card" aria-labelledby="h-img">
-      <div class="card-head"><div><h2 id="h-img">Image được phép dùng</h2><p class="subtle">Mỗi dòng một image. Image cần có bash, rsync, tzdata. Image bỏ khỏi danh sách sẽ bị tắt, không bị xóa.</p></div></div>
-      <form class="card-body stack" id="img-form">
-        <div class="field"><label for="img-list">Danh sách</label>
-          <textarea class="textarea" id="img-list" rows="8" spellcheck="false">${esc(images.filter((i) => i.enabled).map((i) => i.name).join('\n'))}</textarea></div>
-        ${images.some((i) => !i.enabled) ? `<p class="subtle">Đang tắt: ${images.filter((i) => !i.enabled).map((i) => `<code>${esc(i.name)}</code>`).join(', ')}</p>` : ''}
-        <div><button class="btn btn-primary" type="submit" id="img-save">${icon('check', 'icon-sm')}Lưu</button></div>
-      </form>
-    </section>`;
-  panel.querySelector('#img-form').onsubmit = async (ev) => {
-    ev.preventDefault();
-    const names = panel.querySelector('#img-list').value.split('\n').map((s) => s.trim()).filter(Boolean);
-    try {
-      await withBusy(panel.querySelector('#img-save'), () => put('/admin/images', { images: names }));
-      toast('Đã lưu danh sách image');
-      await renderImages(panel);
-    } catch (e) {
-      toast(errorMessage(e), 'error');
-    }
-  };
 }
 
 async function renderAudit(panel) {

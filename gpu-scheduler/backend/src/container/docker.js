@@ -41,8 +41,8 @@ function createDocker() {
       const { stdout, stderr } = await docker(['logs', '--timestamps', name]);
       return stdout + stderr;
     },
-    async exec(name, cmd) {
-      await docker(['exec', name, ...cmd]);
+    async exec(name, cmd, opts = {}) {
+      await docker(['exec', ...(opts.user ? ['-u', opts.user] : []), name, ...cmd]);
     },
     async stats(name) {
       try {
