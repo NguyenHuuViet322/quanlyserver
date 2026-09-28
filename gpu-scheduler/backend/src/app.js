@@ -4,6 +4,7 @@ const { loadConfig } = require('./config');
 const { ApiError, err } = require('./errors');
 const { createGoogleVerifier, checkClaims } = require('./auth/google');
 const users = require('./users/service');
+const bookings = require('./booking/service');
 
 const SID = 'sid';
 const NO_STORE = 'no-store';
@@ -18,7 +19,8 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   const ctx = { db, system, clock, cfg };
 
   // Không log body hay header Cookie (REQ-US-10)
-  const app = Fastify({ logger, disableRequestLogging: !logger });
+  // coerceTypes: false — "use_gpu": "true" (chuỗi) phải bị từ chối, không tự đổi sang boolean
+  const app = Fastify({ logger, disableRequestLogging: !logger, ajv: { customOptions: { coerceTypes: false } } });
   await app.register(require('@fastify/cookie'));
   app.decorateRequest('user', null);
 
@@ -74,7 +76,11 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   });
 
   // --- Tài khoản của tôi ---
-  app.get('/api/me', async (req) => users.publicUser(req.user, cfg));
+  app.get('/api/me', async (req) => {
+    const me = users.publicUser(req.user, cfg);
+    if (req.user.status === 'active') me.gpu_quota = await bookings.gpuQuotaOf(ctx, req.user);
+    return me;
+  });
 
   app.get('/api/me/password', async (req, reply) => {
     const password = await users.getPendingPassword(ctx, req.user);
@@ -104,6 +110,32 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
     return reply.code(204).send();
   });
 
+  // --- Đặt lịch — REQ-BK-01..12 ---
+  const bookingBody = {
+    type: 'object',
+    required: ['start', 'end', 'use_gpu', 'image'],
+    properties: {
+      start: { type: 'string' },
+      end: { type: 'string' },
+      use_gpu: { type: 'boolean' },
+      image: { type: 'string' },
+      ports: { type: 'array', maxItems: 20, items: { type: 'integer' } },
+    },
+  };
+  const bookingId = (req) => Number(req.params.id) || 0;
+
+  app.get('/api/images', async () => bookings.listImages(ctx));
+  app.get('/api/calendar', async (req) => bookings.calendar(ctx, req.query));
+  app.get('/api/bookings', async (req) => bookings.listBookings(ctx, req.user, req.query));
+  app.get('/api/bookings/:id', async (req) => bookings.getBooking(ctx, req.user, bookingId(req)));
+  app.post('/api/bookings', { schema: { body: bookingBody } }, async (req, reply) =>
+    reply.code(201).send(await bookings.createBooking(ctx, req.user, req.body)));
+  app.post('/api/bookings/:id/cancel', async (req) => bookings.cancelBooking(ctx, req.user, bookingId(req)));
+  app.post('/api/bookings/:id/end', async (req, reply) =>
+    reply.code(202).send(await bookings.endBooking(ctx, req.user, bookingId(req))));
+  app.post('/api/bookings/:id/restart', async (req, reply) =>
+    reply.code(202).send(await bookings.restartBooking(ctx, req.user, bookingId(req))));
+
   // --- Admin ---
   const idParam = (req) => Number(req.params.id) || 0;
 
@@ -111,6 +143,10 @@ async function buildApp({ db, system, clock = { now: () => new Date() }, google,
   app.post('/api/admin/users/:id/approve', async (req) => ({ user: await users.approveUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/lock', async (req) => ({ user: await users.lockUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/unlock', async (req) => ({ user: await users.unlockUser(ctx, req.user.id, idParam(req)) }));
+  app.get('/api/admin/images', async () => bookings.listImages(ctx, { all: true }));
+  app.put('/api/admin/images', {
+    schema: { body: { type: 'object', required: ['images'], properties: { images: { type: 'array', items: { type: 'string', minLength: 1 } } } } },
+  }, async (req) => bookings.setImages(ctx, req.user, req.body.images));
   app.delete('/api/admin/users/:id', async (req) => ({ user: await users.deleteUser(ctx, req.user.id, idParam(req)) }));
 
   return app;

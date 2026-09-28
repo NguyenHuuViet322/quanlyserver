@@ -111,13 +111,14 @@ Lỗi: `400 INVALID_SSH_KEY`.
 ```
 `exit_reason` ∈ `null`, `OOM`, `EXITED`, `ERROR` (REQ-MN-04).
 
-### `GET /bookings?mine=1&from=…&to=…` · `GET /bookings/:id`
+### `GET /bookings?from=…&to=…` · `GET /bookings/:id`
+Trả các ca của chính user; admin thêm `?all=1` để xem tất cả. Xem ca của người khác (không phải admin) → `403 FORBIDDEN`.
 
 ### `POST /bookings/:id/cancel` — chỉ khi `scheduled` → `200`, trạng thái `cancelled`.
-### `POST /bookings/:id/end` — chỉ khi `running` hoặc `exited` → `202`, trạng thái `stopping` rồi `completed`.
-### `POST /bookings/:id/restart` — chỉ khi `exited` và `now < end` → `202` (REQ-SC-07).
+### `POST /bookings/:id/end` — chỉ khi `running` hoặc `exited` → `202`, trạng thái `stopping`; Scheduler dừng container rồi chuyển `completed`.
+### `POST /bookings/:id/restart` — chỉ khi `exited` và `now < end` → `202`, trạng thái `starting`; Scheduler tạo lại container với cấu hình cũ (REQ-SC-07).
 
-Ba API trên: `403 FORBIDDEN` nếu không phải chủ ca hoặc admin, `404 NOT_FOUND`, `409 INVALID_STATE`.
+Ba API trên kiểm tra theo thứ tự: `404 NOT_FOUND` → `403 FORBIDDEN` (không phải chủ ca hoặc admin) → `409 INVALID_STATE`.
 
 ## Giám sát — REQ-MN-01..04
 
@@ -140,7 +141,7 @@ Tài khoản bị khóa hoặc đã xóa: phiên cũ vẫn tồn tại nhưng m�
 | `POST /admin/users/:id/lock` | `200`, user `locked` | `409 INVALID_STATE` |
 | `POST /admin/users/:id/unlock` | `200`, user `active` | `409 INVALID_STATE` |
 | `DELETE /admin/users/:id` | `200`, user `deleted` | |
-| `GET /admin/images` · `PUT /admin/images` | danh sách image cho phép | |
+| `GET /admin/images` · `PUT /admin/images { "images": ["…"] }` | danh sách image cho phép; image không có trong danh sách PUT bị tắt (không xóa) | |
 | `GET /admin/audit?from=…&to=…` | audit log | |
 
 ## Gate Bước 2

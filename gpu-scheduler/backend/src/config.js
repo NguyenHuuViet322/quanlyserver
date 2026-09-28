@@ -34,7 +34,7 @@ const defaults = Object.freeze({
   imageRetentionMs: 30 * DAY,
   logRetentionMs: 30 * DAY,
   deletedUserRetentionMs: 30 * DAY,
-  sessionTtlMs: 7 * DAY,
+  sessionTtlMs: 30 * DAY,
   passwordEncKey: null, // 32 byte hex, bắt buộc — biến môi trường PASSWORD_ENC_KEY
 });
 

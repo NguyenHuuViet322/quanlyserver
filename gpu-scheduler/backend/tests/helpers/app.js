@@ -40,7 +40,7 @@ async function createTestApp({ config = {}, now } = {}) {
     return { res, cookie: cookieOf(res), body: res.json() };
   }
 
-  // Tạo admin đã active (bootstrap như lệnh promote-admin)
+  // Tạo admin như lệnh promote-admin (tài khoản vẫn pending, được gọi API admin để tự duyệt mình)
   async function adminCookie(email = 'admin@vimaru.edu.vn') {
     const { body } = await login(email);
     await db.query(`UPDATE users SET role = 'admin' WHERE id = $1`, [body.user.id]);

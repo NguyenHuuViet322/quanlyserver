@@ -43,7 +43,7 @@ Nguồn: [`ke-hoach-server-vmu.md`](../../../ke-hoach-server-vmu.md). Tài liệ
 | `IMAGE_RETENTION` | 30 ngày | Image không dùng quá hạn này bị dọn |
 | `LOG_RETENTION` | 30 ngày | Thời gian giữ log container (Q1) |
 | `DELETED_USER_RETENTION` | 30 ngày | Giữ dữ liệu user đã xóa trước khi xóa hẳn (Q2) |
-| `SESSION_TTL` | 7 ngày | Thời hạn phiên đăng nhập Dashboard (cookie `sid`) |
+| `SESSION_TTL` | 30 ngày | Thời hạn phiên đăng nhập Dashboard (cookie `sid`) |
 | `ALLOWED_IMAGES` | danh sách do admin quản lý | Image được phép dùng |
 
 Các giá trị kế hoạch chưa nêu đã được chốt ở mục 10.
