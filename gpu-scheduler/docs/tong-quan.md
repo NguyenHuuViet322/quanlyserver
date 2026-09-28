@@ -129,7 +129,78 @@ Không có quyền root trong container, nhưng `HOME=/workspace` nên mọi th�
 | Xem dữ liệu / container người khác | Thư mục `0700`, container gắn label theo user, mạng tắt giao tiếp giữa container |
 | Một người chiếm hết máy | Giới hạn 2 phiên, 1 GPU, 28 GiB RAM/phiên, 10 giờ GPU/tuần, quota 100 GiB |
 
-## 6. Trạng thái hiện tại (2026-09-29)
+## 6. Giao diện: bảng màu
+
+Màu lấy từ **logo VMU** ([`icon.svg`](../../icon.svg): xanh `#0001fe`, đỏ `#fe0103` trên nền trắng), làm dịu đi để dễ nhìn lâu. Mọi màu khai báo một chỗ dưới dạng biến CSS trong [`frontend/src/styles.css`](../frontend/src/styles.css) (`:root`); component chỉ dùng biến, không ghi mã màu trực tiếp. Hiện chỉ có giao diện sáng.
+
+### Màu thương hiệu
+
+| Biến | Mã | Dùng cho |
+|---|---|---|
+| `--brand` | `#1f2bd0` | Màu chủ đạo: nút chính, mục menu đang chọn, **ca của bạn** trên lịch, ngày hôm nay, liên kết |
+| `--brand-strong` | `#161fa3` | Hover/nhấn nút chính, chữ trên nền xanh nhạt |
+| `--brand-soft` | `#eceefe` | Nền mục menu đang chọn, ô lịch khi rê chuột |
+| `--brand-softer` | `#f6f7ff` | Nền cột "hôm nay", hover nhẹ, khung tóm tắt |
+| `--vmu-red` | `#e0101f` | **Chỉ làm điểm nhấn thương hiệu**: vạch "bây giờ" trên lịch, số thông báo chưa đọc, dải màu đầu trang đăng nhập |
+
+Xanh `#1f2bd0` là bản dịu của `#0001fe` (xanh thuần quá gắt khi nhìn lâu) mà vẫn đủ tương phản. Đỏ VMU không dùng cho nút hay chữ thường để không bị nhầm với báo lỗi.
+
+### Màu ngữ nghĩa (trạng thái)
+
+| Biến | Chữ / nền nhạt | Dùng cho |
+|---|---|---|
+| `--danger` / `--danger-soft` | `#c3161c` / `#fdecec` | Lỗi, thao tác nguy hiểm (Hủy ca, Xóa, Kết thúc sớm), vượt dung lượng, OOM |
+| `--success` / `--success-soft` | `#067647` / `#e6f5ed` | Ca đang chạy |
+| `--warning` / `--warning-soft` | `#9a5305` / `#fff3de` | Đang khởi chạy / đang dừng, chưa có SSH key, cảnh báo hết ca |
+
+Trạng thái **luôn có chữ đi kèm** (vd "Đang chạy", "Đã hủy"), không chỉ dựa vào màu.
+
+### Màu trung tính
+
+| Biến | Mã | Dùng cho |
+|---|---|---|
+| `--text` | `#0f172a` | Chữ chính; nền khối code và chip "GPU" |
+| `--text-muted` | `#4b5567` | Chữ phụ, nhãn, mô tả |
+| `--text-subtle` | `#647083` | Chữ rất phụ (giờ trên trục lịch, ghi chú), cỡ ≥ 13px |
+| `--border` / `--border-strong` | `#e2e5ee` / `#cbd1de` | Đường kẻ, viền thẻ / viền ô nhập, nút phụ |
+| `--surface` | `#ffffff` | Nền thẻ, hộp thoại, lịch |
+| `--bg` | `#f5f6fa` | Nền trang |
+
+### Màu trên lịch
+
+| Thành phần | Màu |
+|---|---|
+| Ca của bạn | Nền `--brand`, chữ trắng |
+| Ca người khác | Nền `#e9ecf4`, chữ `#1f2937`, vạch trái `#9aa3b5` |
+| Ca có GPU | Chip "GPU" nền `#0f172a` chữ trắng (trên ca của bạn: nền trắng chữ xanh); ca người khác có GPU thì vạch trái đậm `#0f172a` |
+| Cột hôm nay | Nền `--brand-softer`, ngày ghi trong viên thuốc `--brand` |
+| Giờ đã qua | Phủ xám rất nhạt, không bấm được |
+| Thời điểm hiện tại | Vạch ngang `--vmu-red` có chấm tròn |
+
+### Độ tương phản (WCAG)
+
+Tính theo công thức WCAG 2.x; ngưỡng AA cho chữ thường là 4.5:1.
+
+| Cặp màu | Tỉ lệ |
+|---|---|
+| `--text` trên trắng | 17.9:1 |
+| `--text-muted` trên trắng | 7.5:1 |
+| `--text-subtle` trên trắng / trên `--bg` | 5.0:1 / 4.6:1 |
+| `--brand` trên trắng, chữ trắng trên `--brand` | 9.1:1 |
+| `--brand-strong` trên `--brand-soft` | 10.4:1 |
+| `--danger` / `--success` / `--warning` trên nền nhạt tương ứng | 5.3:1 / 5.1:1 / 5.3:1 |
+| Chữ ca người khác trên nền khối | 12.4:1 |
+| `--vmu-red` trên trắng | 4.9:1 |
+
+### Các thành phần khác
+
+- **Font:** Inter (có tiếng Việt), dự phòng font hệ thống; số dùng chữ số đều độ rộng (`tabular-nums`) để giờ không nhảy.
+- **Icon:** SVG nét 1.75, một bộ duy nhất, không dùng emoji.
+- **Bo góc:** 6 / 10 / 14 px (`--radius-sm`, `--radius`, `--radius-lg`); đổ bóng nhẹ `--shadow-1` cho thẻ.
+- **Focus bàn phím:** viền `0 0 0 3px` màu `--brand` độ trong 35% (`--focus`).
+- **Chuyển động:** ngắn (120–200 ms); tắt khi người dùng bật "giảm chuyển động" (`prefers-reduced-motion`).
+
+## 7. Trạng thái hiện tại (2026-09-29)
 
 | Module | Nội dung | Test case đã đạt |
 |---|---|---|

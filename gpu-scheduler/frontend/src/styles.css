@@ -2,7 +2,7 @@
 
 :root {
   /* Thương hiệu */
-  --brand: #1f2bd0;          /* xanh VMU, dịu hơn #0001fe; 7.9:1 trên nền trắng */
+  --brand: #1f2bd0;          /* xanh VMU, dịu hơn #0001fe; 9.1:1 trên nền trắng */
   --brand-strong: #161fa3;   /* hover / nhấn */
   --brand-soft: #eceefe;     /* nền nhấn nhẹ */
   --brand-softer: #f6f7ff;
@@ -18,8 +18,8 @@
 
   /* Trung tính */
   --text: #0f172a;
-  --text-muted: #4b5567;     /* 7.3:1 trên trắng */
-  --text-subtle: #647083;    /* chỉ dùng cho chữ phụ ≥ 13px, 4.9:1 */
+  --text-muted: #4b5567;     /* 7.5:1 trên trắng */
+  --text-subtle: #647083;    /* chỉ dùng cho chữ phụ ≥ 13px, 5.0:1 trên trắng, 4.6:1 trên --bg */
   --border: #e2e5ee;
   --border-strong: #cbd1de;
   --surface: #ffffff;
