@@ -1,13 +1,13 @@
 # M6 — Giám sát & log
 
 - [ ] **MN-T01** (REQ-MN-01) · happy · system — Phiên GPU đang chạy → `GET /bookings/:id/metrics` có CPU, RAM, GPU; `sampled_at` cách hiện tại ≤ 60 giây
-- [x] **MN-T02** (REQ-MN-02) · happy · integration — Ca đã `completed` → `GET /bookings/:id/logs` trả log của container ✅ `93bb049`
-- [x] **MN-T05** (REQ-MN-02) · edge · integration — Log quá 30 ngày (đồng hồ giả) → bị dọn, API trả `404 NOT_FOUND` ✅ `93bb049`
-- [x] **MN-T03** (REQ-MN-03) · happy · integration — Đặt, hủy, kết thúc sớm, khởi động lại, duyệt, khóa, xóa, cấp lại mật khẩu → mỗi thao tác có 1 dòng audit với actor, thời gian, action, target; không dòng nào chứa mật khẩu ✅ `93bb049`
-- [x] **MN-T04** (REQ-MN-04) · happy · integration — Container bị OOM (`State.OOMKilled = true`) → ca `exited`, `exit_reason = OOM`, có notification `OOM` ✅ `93bb049`
+- [x] **MN-T02** (REQ-MN-02) · happy · integration — Ca đã `completed` → `GET /bookings/:id/logs` trả log của container ✅ `99b5b82`
+- [x] **MN-T05** (REQ-MN-02) · edge · integration — Log quá 30 ngày (đồng hồ giả) → bị dọn, API trả `404 NOT_FOUND` ✅ `99b5b82`
+- [x] **MN-T03** (REQ-MN-03) · happy · integration — Đặt, hủy, kết thúc sớm, khởi động lại, duyệt, khóa, xóa, cấp lại mật khẩu → mỗi thao tác có 1 dòng audit với actor, thời gian, action, target; không dòng nào chứa mật khẩu ✅ `99b5b82`
+- [x] **MN-T04** (REQ-MN-04) · happy · integration — Container bị OOM (`State.OOMKilled = true`) → ca `exited`, `exit_reason = OOM`, có notification `OOM` ✅ `99b5b82`
 
 ## Thông báo
 
-- [ ] **MN-T06** (REQ-SC-02, REQ-SC-06, REQ-MN-04, REQ-ST-02) · happy · integration — Có thông báo END_WARNING, START_FAILED, OOM, SOFT_QUOTA → `GET /notifications` trả đủ, mới nhất trước, có `kind`, `message`, `booking_id`, `created_at` (+07:00), `read_at`; `unread_count` đúng; `?unread=1` chỉ trả thông báo chưa đọc; `?limit=2` trả 2
-- [ ] **MN-T07** (REQ-SC-02) · negative · integration — User B không thấy thông báo của A; B đánh dấu đã đọc thông báo của A → `404 NOT_FOUND`, thông báo của A vẫn chưa đọc
-- [ ] **MN-T08** (REQ-SC-02) · happy · integration — `POST /notifications/:id/read` → `204`, `read_at` được ghi, `unread_count` giảm 1; `POST /notifications/read-all` → mọi thông báo đã đọc, `unread_count = 0`
+- [x] **MN-T06** (REQ-SC-02, REQ-SC-06, REQ-MN-04, REQ-ST-02) · happy · integration — Có thông báo END_WARNING, START_FAILED, OOM, SOFT_QUOTA → `GET /notifications` trả đủ, mới nhất trước, có `kind`, `message`, `booking_id`, `created_at` (+07:00), `read_at`; `unread_count` đúng; `?unread=1` chỉ trả thông báo chưa đọc; `?limit=2` trả 2 ✅ `99b5b82`
+- [x] **MN-T07** (REQ-SC-02) · negative · integration — User B không thấy thông báo của A; B đánh dấu đã đọc thông báo của A → `404 NOT_FOUND`, thông báo của A vẫn chưa đọc ✅ `99b5b82`
+- [x] **MN-T08** (REQ-SC-02) · happy · integration — `POST /notifications/:id/read` → `204`, `read_at` được ghi, `unread_count` giảm 1; `POST /notifications/read-all` → mọi thông báo đã đọc, `unread_count = 0` ✅ `99b5b82`

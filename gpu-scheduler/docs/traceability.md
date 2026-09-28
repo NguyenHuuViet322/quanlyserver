@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **71** · Test case: **134** · Đã tick: **87/134**
+- REQ: **71** · Test case: **137** · Đã tick: **90/137**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -36,11 +36,11 @@
 | REQ-BK-11 | Định dạng thời gian ở API | api.md, time.md | BK-T33 ✅, BK-T34 ✅ | 2/2 | backend/src/app.js, backend/src/time/index.js | ✅ Xong |
 | REQ-BK-12 | Tính theo giờ Việt Nam, không phụ thuộc môi trường | api.md, database.md, deployment.md, time.md | BK-T35 ✅, BK-T36 ✅, BK-T37 ✅, BK-T38 ✅, BK-T40 ✅ | 5/5 | backend/src/app.js, backend/src/booking/quota.js, backend/src/time/index.js | ✅ Xong |
 | REQ-SC-01 | Khởi chạy đúng giờ | scheduler.md | SC-T01, SC-T12 ✅ | 2/2 | backend/src/scheduler/tick.js | Đang làm (1/2) |
-| REQ-SC-02 | Cảnh báo hết ca | database.md, scheduler.md, ssh.md | SC-T02 ✅, SC-T15 | 1/2 | backend/src/scheduler/tick.js | Đang làm (1/2) |
+| REQ-SC-02 | Cảnh báo hết ca | api.md, database.md, scheduler.md, ssh.md | MN-T06 ✅, MN-T07 ✅, MN-T08 ✅, SC-T02 ✅, SC-T15 | 4/5 | backend/src/monitoring/service.js, backend/src/scheduler/tick.js | Đang làm (4/5) |
 | REQ-SC-03 | Dừng khi hết ca | scheduler.md | SC-T03 ✅, SC-T04 | 2/2 | backend/src/scheduler/tick.js | Đang làm (1/2) |
 | REQ-SC-04 | Không tạo trùng container | scheduler.md | SC-T05 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-SC-05 | Reconcile khi khởi động | scheduler.md | SC-T06 ✅, SC-T07 ✅ | 2/2 | backend/src/scheduler/tick.js | ✅ Xong |
-| REQ-SC-06 | Lỗi tạo container | scheduler.md | SC-T08 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
+| REQ-SC-06 | Lỗi tạo container | api.md, scheduler.md | MN-T06 ✅, SC-T08 ✅ | 2/2 | backend/src/monitoring/service.js, backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-SC-07 | Container tự thoát | api.md, container.md, scheduler.md | SC-T09 ✅, SC-T10 ✅, SC-T11 ✅ | 3/3 | backend/src/booking/service.js, backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-SC-08 | Đồng hồ của Scheduler | container.md, scheduler.md, time.md | SC-T13 ✅, SC-T14 | 2/2 | backend/src/container/run-args.js, backend/src/scheduler/tick.js | Đang làm (1/2) |
 | REQ-CT-01 | GPU | container.md | CT-T01, CT-T02 | 0/2 | backend/src/container/run-args.js | Đang làm (0/2) |
@@ -54,14 +54,14 @@
 | REQ-CT-09 | Chép file mọi lúc | ssh.md | CT-T16, CT-T17 ✅ | 1/2 | — | Chưa code (0/2) |
 | REQ-CT-10 | Cổng chỉ qua SSH tunnel | container.md, ssh.md | CT-T18 ✅, CT-T19, US-T31 ✅ | 2/3 | backend/src/container/run-args.js, backend/src/system/sshd.js, backend/src/users/service.js | Đang làm (2/3) |
 | REQ-ST-01 | Project quota | storage.md | ST-T01, ST-T02, US-T12 | 1/3 | backend/src/system/linux.js | Đang làm (0/3) |
-| REQ-ST-02 | Vượt soft quota | database.md, storage.md | ST-T03 ✅, ST-T07 | 1/2 | backend/src/scheduler/main.js, backend/src/storage/service.js | Đang làm (1/2) |
+| REQ-ST-02 | Vượt soft quota | api.md, database.md, storage.md | MN-T06 ✅, ST-T03 ✅, ST-T07 | 2/3 | backend/src/monitoring/service.js, backend/src/scheduler/main.js, backend/src/storage/service.js | Đang làm (2/3) |
 | REQ-ST-03 | Writable layer | container.md, storage.md | ST-T04 | 0/1 | backend/src/container/run-args.js | Đang làm (0/1) |
 | REQ-ST-04 | Dữ liệu bền vững | storage.md | ST-T05 | 0/1 | — | Chưa code (0/1) |
 | REQ-ST-05 | Báo cáo dung lượng | database.md, storage.md | ST-T06 | 1/1 | backend/src/scheduler/main.js, backend/src/storage/service.js, backend/src/storage/xfs.js | Đang làm (0/1) |
 | REQ-MN-01 | Số liệu phiên | api.md, dashboard.md | MN-T01 | 1/1 | backend/src/app.js, backend/src/monitoring/parse.js, backend/src/monitoring/service.js | Đang làm (0/1) |
 | REQ-MN-02 | Log container | api.md, dashboard.md | MN-T02 ✅, MN-T05 ✅ | 2/2 | backend/src/app.js, backend/src/cli.js, backend/src/monitoring/service.js | ✅ Xong |
 | REQ-MN-03 | Audit log | api.md, database.md | MN-T03 ✅ | 1/1 | backend/src/monitoring/service.js | ✅ Xong |
-| REQ-MN-04 | Lý do dừng | api.md, dashboard.md, scheduler.md | MN-T04 ✅ | 1/1 | backend/src/scheduler/tick.js | ✅ Xong |
+| REQ-MN-04 | Lý do dừng | api.md, dashboard.md, scheduler.md | MN-T04 ✅, MN-T06 ✅ | 2/2 | backend/src/monitoring/service.js, backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-UI-01 | Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", khôn… | dashboard.md | UI-T01 | 0/1 | — | Chưa code (0/1) |
 | REQ-UI-02 | Lịch MUST hiển thị khung đã đủ 2 phiên và khung đã có ca … | api.md, dashboard.md | UI-T02 | 0/1 | backend/src/booking/service.js | Đang làm (0/1) |
 | REQ-UI-03 | Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ… | dashboard.md | UI-T03 | 0/1 | — | Chưa code (0/1) |
