@@ -21,7 +21,7 @@ const HOUR = 3600 * 1000;
 const GiB = 1024 ** 3;
 
 const ACCOUNTS = [
-  { email: 'quantri@vimaru.edu.vn', name: 'Quản trị viên', role: 'admin', note: 'Admin: duyệt/khóa tài khoản, image, nhật ký' },
+  { email: 'quantri@vimaru.edu.vn', name: 'Quản trị viên', role: 'admin', note: 'Admin: duyệt/khóa tài khoản, nhật ký' },
   { email: 'vietnh@vimaru.edu.vn', name: 'Nguyễn Hữu Việt', note: 'Người dùng có ca đang chạy, lịch sử, thông báo' },
   { email: 'hoanglm@vimaru.edu.vn', name: 'Lê Minh Hoàng', note: 'Đã vượt 80 GiB (có cảnh báo dọn dẹp)' },
   { email: 'tranthu@vimaru.edu.vn', name: 'Trần Thu', note: 'Người dùng thường' },

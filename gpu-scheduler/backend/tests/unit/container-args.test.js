@@ -57,3 +57,18 @@ test('CT-T11 luôn dùng BASE_IMAGE, HOME=/workspace, TZ; đúng 3 mount /worksp
   assert.deepEqual(envs(args), ['HOME=/workspace', 'TZ=Asia/Ho_Chi_Minh']);
   assert.equal(valueAfter(args, '-w'), '/workspace');
 });
+
+test('CT-T24 giới hạn RAM không chẵn GiB (profile test) → đúng giá trị, không bao giờ 0g', () => {
+  const { configFromEnv } = require('../../src/config');
+  const small = configFromEnv({ SESSION_MEMORY: '256M', SESSION_SHM: '64M' });
+  let args = buildRunArgs(base(), small);
+  assert.equal(valueAfter(args, '--memory'), '256m');
+  assert.equal(valueAfter(args, '--memory-swap'), '256m');
+  assert.equal(valueAfter(args, '--shm-size'), '64m');
+  args = buildRunArgs(base(), configFromEnv({ SESSION_MEMORY: '1536M', SESSION_SHM: '512M' }));
+  assert.equal(valueAfter(args, '--memory'), '1536m');
+  args = buildRunArgs(base(), configFromEnv({ SESSION_MEMORY: '1000000000', SESSION_SHM: '1000' }));
+  assert.equal(valueAfter(args, '--memory'), '1000000000');
+  assert.equal(valueAfter(args, '--shm-size'), '1000');
+  for (const flag of ['--memory', '--memory-swap', '--shm-size']) assert.notEqual(valueAfter(args, flag), '0g');
+});

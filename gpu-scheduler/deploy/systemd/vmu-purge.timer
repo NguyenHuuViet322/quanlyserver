@@ -1,0 +1,10 @@
+# /etc/systemd/system/vmu-purge.timer — hằng ngày 03:00 (giờ hệ thống); Persistent: máy tắt lúc 03:00 thì chạy bù khi bật
+[Unit]
+Description=VMU GPU Server — dọn dẹp hằng ngày
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

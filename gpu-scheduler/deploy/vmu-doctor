@@ -1,0 +1,96 @@
+#!/bin/bash
+# /usr/local/sbin/vmu-doctor — kiểm tra toàn hệ thống, REQ-DP-09, docs/10-design/deployment.md#vmu-doctor
+#   sudo vmu-doctor            in OK/FAIL từng mục; có FAIL → mã thoát 1
+# Output dùng làm log cho test system: sudo vmu-doctor | tee reports/system/DP-T13.log
+set -uo pipefail
+
+ENV_FILE=${VMU_ENV_FILE:-/etc/vmu/vmu.env}
+[[ $EUID -eq 0 ]] || { echo "vmu-doctor: cần chạy bằng sudo" >&2; exit 2; }
+[[ -r "$ENV_FILE" ]] || { echo "FAIL  không đọc được $ENV_FILE — chạy deploy/install.sh trước" >&2; exit 1; }
+set -a; . "$ENV_FILE"; set +a
+
+PASS=0
+FAILS=0
+ok() { printf '\033[32mOK  \033[0m %s\n' "$1"; PASS=$((PASS + 1)); }
+fail() { printf '\033[31mFAIL\033[0m %s\n' "$1"; [[ -n "${2:-}" ]] && printf '       → %s\n' "$2"; FAILS=$((FAILS + 1)); }
+check() { # <mô tả> <gợi ý khi lỗi> <lệnh…>
+  local desc=$1 hint=$2; shift 2
+  if "$@" >/dev/null 2>&1; then ok "$desc"; else fail "$desc" "$hint"; fi
+}
+
+DOMAIN=${DASHBOARD_URL#https://}
+DOMAIN=${DOMAIN%%/*}
+NET=${CONTAINER_NETWORK:-vmu-net}
+echo "VMU GPU Server — kiểm tra hệ thống (profile ${VMU_PROFILE:-?}, $(date '+%F %T %Z'))"
+echo
+
+# ---- Dịch vụ — REQ-DP-01 ----
+for svc in vmu-api vmu-scheduler postgresql nginx docker ssh chrony; do
+  check "dịch vụ $svc đang chạy" "journalctl -u $svc -n 50" systemctl is-active --quiet "$svc"
+done
+for unit in vmu-api vmu-scheduler vmu-purge.timer; do
+  check "$unit tự chạy khi khởi động máy" "systemctl enable $unit" systemctl is-enabled --quiet "$unit"
+done
+
+# ---- HTTPS — REQ-DP-02 ----
+redirect=$(curl -s -o /dev/null -m 10 -w '%{http_code} %{redirect_url}' "http://$DOMAIN/" 2>/dev/null)
+if [[ "$redirect" =~ ^301\ https:// ]]; then ok "http://$DOMAIN → 301 https://"; else fail "http://$DOMAIN chuyển hướng HTTPS (nhận: ${redirect:-không kết nối được})" "kiểm tra DNS, /etc/nginx/sites-enabled/vmu"; fi
+code=$(curl -sk -o /dev/null -m 10 -w '%{http_code}' "https://$DOMAIN/api/config" 2>/dev/null)
+if [[ "$code" == 200 ]]; then ok "https://$DOMAIN/api/config trả 200"; else fail "https://$DOMAIN/api/config (nhận: ${code:-lỗi})" "journalctl -u vmu-api; nginx -t"; fi
+listen=$(ss -ltnH "sport = :${PORT:-3000}" | awk '{print $4}')
+if [[ -n "$listen" ]] && ! grep -Evq '^(127\.0\.0\.1|\[::1\]):' <<<"$listen"; then
+  ok "backend chỉ nghe nội bộ ($(tr '\n' ' ' <<<"$listen"))"
+else
+  fail "backend chỉ nghe 127.0.0.1 (đang: ${listen:-không nghe})" "HOST=127.0.0.1 trong $ENV_FILE"
+fi
+
+# ---- Giờ — REQ-DP-06 ----
+tz=$(runuser -u postgres -- psql -tAc 'SHOW timezone' 2>/dev/null)
+if [[ "$tz" == UTC ]]; then ok "PostgreSQL timezone = UTC"; else fail "PostgreSQL timezone = UTC (đang: ${tz:-?})" "ALTER SYSTEM SET timezone = 'UTC'; SELECT pg_reload_conf();"; fi
+sync=$(timedatectl show -p NTPSynchronized --value 2>/dev/null)
+if [[ "$sync" == yes ]]; then ok "đồng hồ đã đồng bộ NTP"; else fail "đồng hồ đồng bộ NTP (đang: ${sync:-?})" "systemctl restart chrony; chronyc tracking"; fi
+
+# ---- Đĩa — REQ-ST-01, REQ-ST-03 ----
+disk() { # <mountpoint> <regex tùy chọn> <tên tùy chọn>
+  local line
+  line=$(findmnt -n -o TARGET,FSTYPE,OPTIONS "$1" 2>/dev/null | head -1)
+  if [[ $(awk '{print $2}' <<<"$line") == xfs && $(awk '{print $3}' <<<"$line") =~ $2 ]]; then
+    ok "$1 là XFS có $3"
+  else
+    fail "$1 là XFS có $3 (đang: ${line:-chưa mount})" "xem docs/huong-dan-trien-khai.md mục chuẩn bị đĩa"
+  fi
+}
+disk /data 'prjquota|pquota' prjquota
+disk /var/lib/docker 'prjquota|pquota' pquota
+check "/data/users thuộc root, quyền 0711" "chown root:root /data/users; chmod 0711 /data/users" \
+  test "$(stat -c '%U %a' /data/users 2>/dev/null)" = "root 711"
+
+# ---- Docker — REQ-CT-05, REQ-CT-06, REQ-ST-03, REQ-DP-06 ----
+driver=$(docker info --format '{{.Driver}} {{range .DriverStatus}}{{index . 0}}={{index . 1}};{{end}}' 2>/dev/null)
+if [[ "$driver" == overlay2* && "$driver" == *"Backing Filesystem=xfs"* ]]; then
+  ok "Docker dùng overlay2 trên XFS (giới hạn writable layer được)"
+else
+  fail "Docker dùng overlay2 trên XFS (đang: ${driver:-docker không chạy})" "/etc/docker/daemon.json: storage-driver overlay2, containerd-snapshotter false; systemctl restart docker"
+fi
+icc=$(docker network inspect "$NET" --format '{{index .Options "com.docker.network.bridge.enable_icc"}}' 2>/dev/null)
+if [[ "$icc" == false ]]; then ok "mạng $NET tắt giao tiếp giữa container"; else fail "mạng $NET tắt ICC (đang: ${icc:-không có mạng})" "docker network create --driver bridge -o com.docker.network.bridge.enable_icc=false $NET"; fi
+if docker image inspect "$BASE_IMAGE" >/dev/null 2>&1; then
+  ok "image $BASE_IMAGE có sẵn"
+  check "image $BASE_IMAGE có tzdata (Asia/Ho_Chi_Minh)" "thêm tzdata vào deploy/base-image/Dockerfile rồi build lại" \
+    docker run --rm --network none "$BASE_IMAGE" test -f /usr/share/zoneinfo/Asia/Ho_Chi_Minh
+else
+  fail "image $BASE_IMAGE có sẵn" "chạy lại deploy/install.sh (bước build image)"
+fi
+if [[ "${VMU_PROFILE:-}" == prod ]]; then
+  check "container thấy GPU (nvidia-smi)" "cài NVIDIA Container Toolkit; nvidia-ctk runtime configure --runtime=docker" \
+    docker run --rm --network none --gpus all "$BASE_IMAGE" nvidia-smi -L
+fi
+
+# ---- SSH — REQ-CT-08 ----
+check "cấu hình sshd hợp lệ" "sshd -t" sshd -t
+check "sshd_config.d/50-vmu.conf đã cài" "chạy lại deploy/install.sh" test -f /etc/ssh/sshd_config.d/50-vmu.conf
+check "sudoers /etc/sudoers.d/vmu hợp lệ" "visudo -cf /etc/sudoers.d/vmu" visudo -cf /etc/sudoers.d/vmu
+
+echo
+echo "Tổng: $PASS OK, $FAILS FAIL"
+[[ $FAILS -eq 0 ]]

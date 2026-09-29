@@ -34,6 +34,10 @@ case "$action" in
   create-user)
     check_user "$1"; check_uid "$2"
     useradd -u "$2" -U -G vmu-users -m -s /bin/bash "$1"
+    # File key rỗng có sẵn: container mount file này; nếu thiếu, Docker sẽ tạo nhầm một thư mục cùng tên
+    home=$(getent passwd "$1" | cut -d: -f6)
+    install -d -o "$1" -g "$1" -m 0700 "$home/.ssh"
+    install -o "$1" -g "$1" -m 0600 /dev/null "$home/.ssh/authorized_keys"
     ;;
   delete-user)
     check_user "$1"; check_managed "$1"

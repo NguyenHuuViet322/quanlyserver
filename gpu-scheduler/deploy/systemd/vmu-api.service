@@ -1,0 +1,20 @@
+# /etc/systemd/system/vmu-api.service — REQ-DP-01, docs/10-design/deployment.md
+# Không dùng NoNewPrivileges/ProtectSystem: thao tác cần root đi qua `sudo vmu-provision`,
+# mà sudo cần setuid và ghi được /etc, /home, /data.
+[Unit]
+Description=VMU GPU Server — API
+After=network-online.target postgresql.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+User=vmu
+Group=vmu
+WorkingDirectory=/opt/vmu/app
+EnvironmentFile=/etc/vmu/vmu.env
+ExecStart=/opt/vmu/node/bin/node backend/src/server.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

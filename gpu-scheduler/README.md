@@ -5,6 +5,8 @@ Hệ thống đặt lịch dùng GPU RTX 5090 cho ~30 người dùng tại Đạ
 - Kế hoạch: [`../ke-hoach-server-vmu.md`](../ke-hoach-server-vmu.md)
 - Quy trình phát triển: [`../quy-trinh-phat-trien.md`](../quy-trinh-phat-trien.md)
 - **Tổng quan mục đích và luồng hệ thống: [docs/tong-quan.md](docs/tong-quan.md)**
+- Cài đặt lên VPS thử nghiệm hoặc máy chủ thật: [docs/huong-dan-trien-khai.md](docs/huong-dan-trien-khai.md)
+- Hướng dẫn cho người dùng: [docs/huong-dan-su-dung.md](docs/huong-dan-su-dung.md)
 
 ## Trạng thái
 
@@ -12,8 +14,8 @@ Hệ thống đặt lịch dùng GPU RTX 5090 cho ~30 người dùng tại Đạ
 |---|---|
 | 1. Spec | ✅ Đã duyệt 2026-09-28 |
 | 2. Docs | ✅ Đã duyệt 2026-09-28 |
-| 3. Test case | ✅ 125 test case, đã duyệt 2026-09-28 |
-| 4. Code | Đang làm M1 |
+| 3. Test case | ✅ 161 test case (xem [docs/tong-quan.md](docs/tong-quan.md) mục 7) |
+| 4. Code | M1–M8 đã có; còn các test `system` chạy trên VPS / máy chủ thật |
 
 Ma trận truy vết: [docs/traceability.md](docs/traceability.md).
 
@@ -27,7 +29,7 @@ docs/traceability.md        tự sinh bởi tools/trace.js
 backend/src/                time, auth, users, booking, scheduler, container, storage, monitoring
 backend/tests/              unit, integration, system
 frontend/src, tests/e2e     Dashboard, Playwright
-deploy/                     systemd, nginx
+deploy/                     install.sh (2 profile prod/test), vmu-doctor, vmu-cli, systemd, nginx, sshd, image chung
 reports/                    báo cáo JUnit; reports/system/<ID>.log cho test chạy tay
 tools/                      trace.js, sync-ticks.js
 ```

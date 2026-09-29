@@ -1,0 +1,13 @@
+# /etc/systemd/system/vmu-purge.service — chạy bởi vmu-purge.timer: REQ-US-16, REQ-MN-02, REQ-DP-04
+[Unit]
+Description=VMU GPU Server — dọn user đã xóa, log và image quá hạn
+After=docker.service postgresql.service
+
+[Service]
+Type=oneshot
+User=vmu
+Group=vmu
+SupplementaryGroups=docker
+WorkingDirectory=/opt/vmu/app
+EnvironmentFile=/etc/vmu/vmu.env
+ExecStart=/opt/vmu/node/bin/node backend/src/cli.js purge

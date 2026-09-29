@@ -29,23 +29,25 @@ Nguồn: [`ke-hoach-server-vmu.md`](../../../ke-hoach-server-vmu.md). Tài liệ
 | `SCHEDULER_TICK` | 60 giây | Chu kỳ Scheduler |
 | `END_WARNING` | 15 phút | Cảnh báo trước khi hết ca |
 | `STOP_TIMEOUT` | 120 giây | `docker stop -t` |
-| `SESSION_MEMORY` | 28 GiB | Giới hạn RAM mỗi phiên (swap = RAM, tức không swap) |
-| `SESSION_SHM` | 8 GiB | `--shm-size`, tính trong `SESSION_MEMORY` |
-| `HOST_RESERVED_MEMORY` | 8 GiB | RAM luôn dành cho host |
-| `HOST_RESERVED_CPU_THREADS` | 2 | Luồng CPU dành cho host |
-| `USER_QUOTA_SOFT` | 80 GiB | Soft quota thư mục user |
-| `USER_QUOTA_HARD` | 100 GiB | Hard quota thư mục user |
-| `USER_QUOTA_GRACE` | 7 ngày | Thời gian được vượt soft quota |
+| `SESSION_MEMORY` ⚙ | 28 GiB | Giới hạn RAM mỗi phiên (swap = RAM, tức không swap) |
+| `SESSION_SHM` ⚙ | 8 GiB | `--shm-size`, tính trong `SESSION_MEMORY` |
+| `HOST_RESERVED_MEMORY` ⚙ | 8 GiB | RAM luôn dành cho host |
+| `HOST_RESERVED_CPU_THREADS` ⚙ | 2 | Luồng CPU dành cho host |
+| `USER_QUOTA_SOFT` ⚙ | 80 GiB | Soft quota thư mục user |
+| `USER_QUOTA_HARD` ⚙ | 100 GiB | Hard quota thư mục user |
+| `USER_QUOTA_GRACE` ⚙ | 7 ngày | Thời gian được vượt soft quota |
 | `SHARED_STORAGE` | 300 GiB | Dung lượng `/data/shared` |
-| `CONTAINER_WRITABLE_LAYER` | 20 GB | Giới hạn writable layer mỗi container |
+| `CONTAINER_WRITABLE_LAYER` ⚙ | 20 GB | Giới hạn writable layer mỗi container |
 | `IMAGE_RETENTION` | 30 ngày | Image không dùng quá hạn này bị dọn |
 | `LOG_RETENTION` | 30 ngày | Thời gian giữ log container (Q1) |
 | `DELETED_USER_RETENTION` | 30 ngày | Giữ dữ liệu user đã xóa trước khi xóa hẳn (Q2) |
 | `SESSION_TTL` | 30 ngày | Thời hạn phiên đăng nhập Dashboard (cookie `sid`) |
-| `BASE_IMAGE` | `vmu/base:cuda12.8` | Image chung cho mọi container, admin cập nhật (Q13) |
+| `BASE_IMAGE` ⚙ | `vmu/base:cuda12.8` | Image chung cho mọi container, admin cập nhật (Q13) |
 | `CONTAINER_NETWORK` | `vmu-net` | Mạng Docker của container, tắt giao tiếp giữa các container |
 
 Các giá trị kế hoạch chưa nêu đã được chốt ở mục 10.
+
+⚙ = tham số tài nguyên, đọc từ biến môi trường cùng tên (REQ-DP-07). Giá trị trong bảng là mặc định cho máy chủ thật (profile `prod`); profile `test` (VPS không GPU) dùng giá trị thu nhỏ, xem [deployment.md](../10-design/deployment.md).
 
 ## 2. Thuật ngữ
 
@@ -305,6 +307,9 @@ Container bị OOM MUST được hiển thị rõ lý do `OOM` trên Dashboard.
 - **REQ-DP-04** Phiên bản cũ của image không dùng quá `IMAGE_RETENTION` MUST bị dọn định kỳ (hằng ngày); `BASE_IMAGE` hiện hành MUST NOT bị xóa.
 - **REQ-DP-05** MUST có tài liệu người dùng: đăng ký, SSH, lưu dữ liệu, tự sao lưu.
 - **REQ-DP-06** Đồng hồ server MUST được đồng bộ NTP (chrony hoặc systemd-timesyncd). PostgreSQL MUST đặt `timezone = 'UTC'`. Server cài gói `tzdata`; `BASE_IMAGE` MUST có `tzdata`.
+- **REQ-DP-07** Các tham số ⚙ của bảng cấu hình MUST đọc từ biến môi trường cùng tên (file `/etc/vmu/vmu.env`): dung lượng là số byte hoặc số kèm hậu tố `K`/`M`/`G`/`T` (lũy thừa 1024), thời gian là số kèm `d`/`h`/`m`. Không đặt → giá trị trong bảng. Giá trị sai định dạng hoặc ≤ 0, `SESSION_SHM > SESSION_MEMORY`, `USER_QUOTA_SOFT > USER_QUOTA_HARD` → Backend và Scheduler MUST từ chối khởi động, thông báo nêu tên biến.
+- **REQ-DP-08** MUST có script cài đặt `deploy/install.sh` cho Ubuntu 24.04, chạy lại nhiều lần không hỏng và không đổi khóa, mật khẩu đã tạo, với hai profile: `prod` (máy chủ thật: GPU + NVIDIA Container Toolkit; `/data` và `/var/lib/docker` là phân vùng XFS có sẵn) và `test` (VPS không GPU: XFS trên file loop, tham số ⚙ thu nhỏ, image không CUDA). Script MUST kết thúc bằng `vmu-doctor`.
+- **REQ-DP-09** Lệnh `vmu-doctor` MUST kiểm tra và in `OK`/`FAIL` cho từng mục: các dịch vụ systemd đang chạy; HTTP chuyển hướng HTTPS; backend chỉ nghe `127.0.0.1`; PostgreSQL `timezone = UTC`; đồng hồ đã đồng bộ NTP; `/data` là XFS có `prjquota`; `/var/lib/docker` là XFS có `pquota`; mạng `CONTAINER_NETWORK` tắt giao tiếp giữa container; `BASE_IMAGE` có sẵn và có `tzdata`; cấu hình sshd hợp lệ; profile `prod`: container thấy GPU. Có mục `FAIL` → mã thoát ≠ 0.
 
 ## 10. Quyết định đã chốt
 
@@ -328,6 +333,7 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 | Q14 | Dùng VS Code từ máy cá nhân | SSH thẳng vào container qua `vmu-connect`; bỏ dải cổng riêng; container không mở cổng, cách ly mạng — REQ-CT-05, REQ-CT-11 | ✅ Đã chốt 2026-09-29 |
 | Q15 | Chọn GPU khi đặt ca | Công tắc "Sử dụng GPU", mặc định tắt (theo `giao-dien.md`; thay cho "bắt buộc chọn" của kế hoạch gốc) — REQ-UI-01 | ✅ Đã chốt 2026-09-29 |
 | Q16 | Hiện hạn mức GPU trên Dashboard | Hiện lại "Hạn mức GPU: x/10 giờ" trên thanh công cụ Lịch (theo `giao-dien.md`) — REQ-UI-12 | ✅ Đã chốt 2026-09-29 |
+| Q17 | Thử hệ thống trên VPS rẻ (1 CPU, 1 GB RAM, không GPU) | Profile `test` của script cài đặt: cùng mã nguồn, tham số ⚙ thu nhỏ, image không CUDA; ca GPU sẽ không khởi chạy được (`failed`). Test `system` chạy trên VPS chỉ tick khi không phụ thuộc số liệu thật; test dính GPU hoặc giới hạn thật phải chạy lại trên máy chủ thật — REQ-DP-07..09 | ✅ Đã chốt 2026-09-29 |
 
 ## Gate Bước 1
 
@@ -337,6 +343,7 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 - [x] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review
 - [x] Thay đổi 2026-09-29 (Q13, Q14; xem mục 11) — chủ dự án xác nhận hướng trong buổi trao đổi 2026-09-29
 - [x] Thay đổi 2026-09-29 theo [`docs/giao-dien.md`](../giao-dien.md) (Q15, Q16) — chủ dự án yêu cầu xây dựng lại theo tài liệu giao diện
+- [x] Thay đổi 2026-09-29 cho M8 (Q17, REQ-DP-07..09) — chủ dự án yêu cầu làm M8 cho cả VPS thử nghiệm và máy chủ thật
 
 ## 11. Lịch sử thay đổi
 
@@ -344,3 +351,4 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 |---|---|
 | 2026-09-29 | Bỏ REQ-US-09 (dải cổng), REQ-CT-10 (tunnel theo dải cổng), REQ-UI-04 (hiển thị giờ GPU còn lại); bỏ `PORT_BASE`, `PORT_RANGE_SIZE`, `ALLOWED_IMAGES`. Sửa REQ-BK-10, REQ-CT-05, REQ-CT-06, REQ-CT-08, REQ-UI-02, REQ-UI-05, REQ-DP-04, REQ-DP-06. Thêm REQ-CT-11, REQ-UI-11, `BASE_IMAGE`, `CONTAINER_NETWORK`. ID đã bỏ không dùng lại. |
 | 2026-09-29 | Theo `docs/giao-dien.md`: sửa REQ-US-13, REQ-MN-01, REQ-MN-03, REQ-UI-01, REQ-UI-02, REQ-UI-05, REQ-UI-06, REQ-UI-09, REQ-UI-11; thêm REQ-US-17, REQ-US-18, REQ-BK-13, REQ-BK-14, REQ-UI-12..17. |
+| 2026-09-29 | M8: thêm REQ-DP-07 (tham số tài nguyên đọc từ biến môi trường, đánh dấu ⚙), REQ-DP-08 (script cài đặt 2 profile), REQ-DP-09 (`vmu-doctor`); Q17. |

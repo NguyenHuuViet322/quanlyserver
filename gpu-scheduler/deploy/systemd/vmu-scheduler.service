@@ -1,0 +1,19 @@
+# /etc/systemd/system/vmu-scheduler.service — REQ-DP-01, docs/10-design/scheduler.md
+[Unit]
+Description=VMU GPU Server — Scheduler
+After=network-online.target docker.service postgresql.service
+Wants=network-online.target docker.service
+StartLimitIntervalSec=0
+
+[Service]
+User=vmu
+Group=vmu
+SupplementaryGroups=docker
+WorkingDirectory=/opt/vmu/app
+EnvironmentFile=/etc/vmu/vmu.env
+ExecStart=/opt/vmu/node/bin/node backend/src/scheduler/main.js
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

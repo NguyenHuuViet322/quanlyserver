@@ -1,7 +1,9 @@
 # Image chung cho mọi container — REQ-CT-06, REQ-CT-11, REQ-DP-06. docs/10-design/container.md
-# Build: docker build -t vmu/base:cuda12.8 deploy/base-image
+# Build máy chủ thật: docker build -t vmu/base:cuda12.8 deploy/base-image
+# Build VPS thử (không GPU, REQ-DP-08): docker build --build-arg BASE=ubuntu:24.04 -t vmu/base:lite deploy/base-image
 # Người dùng không có root trong container: phần mềm cần root thì thêm vào đây rồi build lại, đổi BASE_IMAGE.
-FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
+ARG BASE=nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
+FROM ${BASE}
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \

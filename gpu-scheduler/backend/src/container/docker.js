@@ -61,6 +61,32 @@ function createDocker() {
       });
       return parseNvidiaSmi(stdout);
     },
+    // REQ-DP-04: dữ liệu cho việc dọn image
+    async listImages() {
+      const ids = (await docker(['image', 'ls', '-aq', '--no-trunc'])).stdout.split('\n').filter(Boolean);
+      if (!ids.length) return [];
+      const { stdout } = await docker(['image', 'inspect', '--format', '{{.Id}}\t{{.Created}}', ...new Set(ids)]);
+      return stdout.split('\n').filter(Boolean).map((line) => {
+        const [id, created] = line.split('\t');
+        return { id, created };
+      });
+    },
+    async usedImageIds() {
+      const names = (await docker(['ps', '-aq'])).stdout.split('\n').filter(Boolean);
+      if (!names.length) return [];
+      return (await docker(['inspect', '--type', 'container', '--format', '{{.Image}}', ...names])).stdout.split('\n').filter(Boolean);
+    },
+    async imageId(ref) {
+      try {
+        return (await docker(['image', 'inspect', '--format', '{{.Id}}', ref])).stdout.trim();
+      } catch (e) {
+        if (isNoSuch(e)) return null;
+        throw e;
+      }
+    },
+    async removeImage(id) {
+      await docker(['rmi', id]);
+    },
     async listManaged() {
       const { stdout } = await docker(['ps', '-a', '--filter', 'label=vmu.booking', '--format', '{{.Names}}\t{{.Label "vmu.booking"}}\t{{.State}}']);
       return stdout.split('\n').filter(Boolean).map((line) => {

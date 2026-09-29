@@ -52,4 +52,65 @@ function loadConfig(overrides = {}) {
   return Object.freeze(cfg);
 }
 
-module.exports = { defaults, loadConfig, GiB, HOUR, DAY };
+// ---- REQ-DP-07: tham số tài nguyên (⚙ trong SPEC) đọc từ biến môi trường (/etc/vmu/vmu.env) ----
+const SIZE_UNITS = { '': 1, K: 1024, M: 1024 ** 2, G: GiB, T: 1024 ** 4 };
+const TIME_UNITS = { m: 60 * 1000, h: HOUR, d: DAY };
+
+function bad(name, value, hint) {
+  return new Error(`Cấu hình sai: ${name}=${JSON.stringify(value)} — ${hint}`);
+}
+function parseSize(name, value) {
+  const m = /^([1-9][0-9]*)([KMGT]?)$/.exec(value);
+  if (!m) throw bad(name, value, 'cần số nguyên dương, có thể kèm K/M/G/T (vd 28G, 512M)');
+  return Number(m[1]) * SIZE_UNITS[m[2]];
+}
+function parseDuration(name, value) {
+  const m = /^([1-9][0-9]*)([mhd])$/.exec(value);
+  if (!m) throw bad(name, value, 'cần số nguyên dương kèm m/h/d (vd 7d, 10m)');
+  return Number(m[1]) * TIME_UNITS[m[2]];
+}
+function parseCount(name, value) {
+  if (!/^[0-9]+$/.test(value)) throw bad(name, value, 'cần số nguyên ≥ 0');
+  return Number(value);
+}
+
+// Tên biến → [khóa cfg, cách đọc]. CONTAINER_WRITABLE_LAYER giữ nguyên chuỗi cho `--storage-opt size=`.
+const ENV_PARAMS = {
+  SESSION_MEMORY: ['sessionMemoryBytes', parseSize],
+  SESSION_SHM: ['sessionShmBytes', parseSize],
+  HOST_RESERVED_MEMORY: ['hostReservedMemoryBytes', parseSize],
+  HOST_RESERVED_CPU_THREADS: ['hostReservedCpuThreads', parseCount],
+  USER_QUOTA_SOFT: ['userQuotaSoftBytes', parseSize],
+  USER_QUOTA_HARD: ['userQuotaHardBytes', parseSize],
+  USER_QUOTA_GRACE: ['userQuotaGraceMs', parseDuration],
+  CONTAINER_WRITABLE_LAYER: ['containerWritableLayer', (name, v) => { parseSize(name, v); return v; }],
+  BASE_IMAGE: ['baseImage', (name, v) => {
+    if (!/^[a-z0-9][a-z0-9._/-]*(:[A-Za-z0-9._-]+)?(@sha256:[0-9a-f]{64})?$/.test(v)) throw bad(name, v, 'tên image Docker không hợp lệ');
+    return v;
+  }],
+};
+
+// Bảng cấu hình = mặc định SPEC + biến môi trường. Chưa kiểm PASSWORD_ENC_KEY (Scheduler không cần) — dùng loadConfig khi cần.
+function configFromEnv(env) {
+  const cfg = { ...defaults };
+  for (const [name, [key, parse]] of Object.entries(ENV_PARAMS)) {
+    if (env[name] !== undefined) cfg[key] = parse(name, String(env[name]).trim());
+  }
+  if (env.SSH_HOST) cfg.sshHost = env.SSH_HOST;
+  if (env.DASHBOARD_URL) cfg.dashboardUrl = env.DASHBOARD_URL;
+  if (env.PASSWORD_ENC_KEY) cfg.passwordEncKey = env.PASSWORD_ENC_KEY;
+  if (cfg.sessionShmBytes > cfg.sessionMemoryBytes) throw bad('SESSION_SHM', env.SESSION_SHM, 'không được lớn hơn SESSION_MEMORY');
+  if (cfg.userQuotaSoftBytes > cfg.userQuotaHardBytes) throw bad('USER_QUOTA_SOFT', env.USER_QUOTA_SOFT, 'không được lớn hơn USER_QUOTA_HARD');
+  return cfg;
+}
+
+// REQ-DP-03: tổng giới hạn RAM container không được lấn phần dành cho host
+function checkHostMemory(cfg, totalBytes) {
+  const need = cfg.maxConcurrentSessions * cfg.sessionMemoryBytes;
+  const available = totalBytes - cfg.hostReservedMemoryBytes;
+  if (need > available) {
+    throw new Error(`RAM không đủ: ${cfg.maxConcurrentSessions} phiên × SESSION_MEMORY cần ${need} byte, host chỉ còn ${available} byte (RAM ${totalBytes} − HOST_RESERVED_MEMORY ${cfg.hostReservedMemoryBytes})`);
+  }
+}
+
+module.exports = { defaults, loadConfig, configFromEnv, checkHostMemory, GiB, HOUR, DAY };

@@ -1,0 +1,7 @@
+#!/bin/bash
+# /usr/local/sbin/vmu-cli — chạy lệnh quản trị (backend/src/cli.js) bằng user vmu với /etc/vmu/vmu.env.
+#   sudo vmu-cli promote-admin ten@vimaru.edu.vn
+#   sudo vmu-cli purge
+set -euo pipefail
+[[ $EUID -eq 0 ]] || { echo "vmu-cli: cần chạy bằng sudo" >&2; exit 2; }
+exec runuser -u vmu -- bash -c 'set -a; . /etc/vmu/vmu.env; set +a; cd /opt/vmu/app && exec /opt/vmu/node/bin/node backend/src/cli.js "$@"' vmu-cli "$@"

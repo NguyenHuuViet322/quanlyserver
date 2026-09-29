@@ -1,7 +1,10 @@
 // REQ-CT-01..06, REQ-CT-11, REQ-ST-03, REQ-SC-08: sinh tham số `docker run` — docs/10-design/container.md
 const { GiB } = require('../config');
 
-const gib = (bytes) => `${Math.floor(bytes / GiB)}g`;
+const MiB = 1024 ** 2;
+// Dung lượng cho docker: 28 GiB → "28g", 256 MiB → "256m", còn lại là số byte. Không làm tròn:
+// "0g" nghĩa là KHÔNG giới hạn với Docker (CT-T24).
+const size = (bytes) => (bytes % GiB === 0 ? `${bytes / GiB}g` : bytes % MiB === 0 ? `${bytes / MiB}m` : String(bytes));
 
 // booking: { id, use_gpu }; user: { username, uid }. Image luôn là cfg.baseImage (REQ-CT-06).
 function buildRunArgs({ booking, user, cpuThreads }, cfg) {
@@ -18,9 +21,9 @@ function buildRunArgs({ booking, user, cpuThreads }, cfg) {
     // Không mở cổng ra máy chủ; mạng tắt giao tiếp giữa các container — REQ-CT-05
     '--network', cfg.containerNetwork,
     '--cpus', String(cpus),
-    '--memory', gib(cfg.sessionMemoryBytes),
-    '--memory-swap', gib(cfg.sessionMemoryBytes),
-    '--shm-size', gib(cfg.sessionShmBytes),
+    '--memory', size(cfg.sessionMemoryBytes),
+    '--memory-swap', size(cfg.sessionMemoryBytes),
+    '--shm-size', size(cfg.sessionShmBytes),
     '--storage-opt', `size=${cfg.containerWritableLayer}`,
     ...(booking.use_gpu ? ['--gpus', 'device=0'] : []),
     '-v', `${cfg.dataRoot}/users/${user.username}:/workspace:rw`,

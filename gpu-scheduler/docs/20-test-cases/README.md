@@ -16,12 +16,12 @@ Checklist gốc của dự án. Mỗi dòng có dạng:
 | [users.md](users.md) | M1 Người dùng & xác thực | 32 |
 | [booking.md](booking.md) | M2 Đặt lịch | 42 |
 | [scheduler.md](scheduler.md) | M3 Scheduler | 15 |
-| [container.md](container.md) | M4 Container & truy cập SSH | 22 |
+| [container.md](container.md) | M4 Container & truy cập SSH | 23 |
 | [storage.md](storage.md) | M5 Lưu trữ | 7 |
 | [monitoring.md](monitoring.md) | M6 Giám sát, log & thông báo | 10 |
 | [dashboard.md](dashboard.md) | M7 Dashboard | 19 |
-| [deployment.md](deployment.md) | M8 Triển khai | 6 |
-| | **Tổng** | **153** |
+| [deployment.md](deployment.md) | M8 Triển khai | 14 |
+| | **Tổng** | **162** |
 
 ## Gate Bước 3
 

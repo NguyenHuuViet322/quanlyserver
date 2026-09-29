@@ -21,6 +21,11 @@
 - Dashboard: lịch là trang chính, khối ca có tên người dùng, đặt ca bằng hộp thoại; trang Kết nối (VS Code, SSH key, dung lượng); xem từng ngày trên điện thoại; dàn hết chiều rộng.
 - Dashboard theo `docs/giao-dien.md`: thanh điều hướng ngang + menu tài khoản; lịch có chọn tuần (xem lại 4 tuần), chú giải, tooltip, thẻ ca bấm được để xem chi tiết và đặt ca vào giờ còn chỗ, "Hạn mức GPU: x/10 giờ"; hộp thoại "Đặt ca mới" có công tắc GPU (mặc định tắt) và 4 dòng kiểm tra trực tiếp; Ca của tôi có khối ca đang chạy (biểu đồ 5 giây, hướng dẫn kết nối, nhật ký) và bảng ca; trang Tài khoản & Key; Quản trị 3 tab; popup đếm ngược 15 phút.
 - API: `POST /bookings/check`, `POST /admin/users/:id/reject`, `POST /admin/users/:id/password-reset`, lọc `GET /admin/audit`, lịch trả ca đã xong (xem lại 28 ngày), tên gợi nhớ SSH key, `cpus` trong số liệu, sự kiện hệ thống `booking.start_failed` / `booking.oom` trong nhật ký.
+- M8 Triển khai: `deploy/install.sh` cho Ubuntu 24.04 với 2 profile `prod` (máy chủ GPU, phân vùng XFS có sẵn, NVIDIA Container Toolkit) và `test` (VPS không GPU: XFS trên file loop, giới hạn thu nhỏ, image `vmu/base:lite`); chạy lại an toàn. Unit systemd `vmu-api`, `vmu-scheduler`, `vmu-purge.timer`; Nginx HTTPS; `vmu-doctor` (kiểm tra toàn hệ thống), `vmu-cli`. Tham số tài nguyên đọc từ `/etc/vmu/vmu.env` (REQ-DP-07). Dọn image quá hạn hằng ngày (REQ-DP-04). Hướng dẫn triển khai và hướng dẫn sử dụng.
+
+### Sửa lỗi
+- Duyệt user tạo sẵn `~/.ssh/authorized_keys` rỗng; trước đây Docker có thể tạo nhầm thư mục cùng tên khi mount, làm hỏng việc thêm SSH key.
+- `tools/sync-ticks.js` đọc đúng tên test có ký tự `>`.
 
 ### Thay đổi
 - Bỏ chọn image (một image chung `BASE_IMAGE`) và dải cổng riêng; container không mở cổng, gắn mạng `vmu-net` tắt giao tiếp giữa container; sshd máy chủ tắt mọi chuyển tiếp cổng.

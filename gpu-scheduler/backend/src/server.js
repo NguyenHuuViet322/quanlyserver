@@ -3,6 +3,7 @@ const { buildApp } = require('./app');
 const { createDb } = require('./db');
 const { createLinuxSystem } = require('./system/linux');
 const { createDocker } = require('./container/docker');
+const { configFromEnv } = require('./config');
 
 function required(name) {
   const v = process.env[name];
@@ -17,11 +18,8 @@ async function main() {
     system: createLinuxSystem(),
     docker: createDocker(),
     google: { clientId: required('GOOGLE_CLIENT_ID') },
-    config: {
-      passwordEncKey: required('PASSWORD_ENC_KEY'),
-      ...(process.env.SSH_HOST && { sshHost: process.env.SSH_HOST }),
-      ...(process.env.DASHBOARD_URL && { dashboardUrl: process.env.DASHBOARD_URL }),
-    },
+    // REQ-DP-07: tham số tài nguyên từ /etc/vmu/vmu.env; sai thì dừng ngay
+    config: { ...configFromEnv(process.env), passwordEncKey: required('PASSWORD_ENC_KEY') },
     // Production: Nginx phục vụ frontend/src; đặt STATIC_DIR để backend tự phục vụ (chạy thử)
     staticDir: process.env.STATIC_DIR || null,
     logger: { level: process.env.LOG_LEVEL || 'info' },

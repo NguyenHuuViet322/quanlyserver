@@ -35,6 +35,8 @@ flowchart LR
     API -. vmu-provision .-> OS[Tài khoản Linux,<br/>thư mục, quota]
 ```
 
+**Triển khai:** một lệnh `sudo bash deploy/install.sh --profile prod|test …` cài toàn bộ lên Ubuntu 24.04 (PostgreSQL, Node.js, Docker, Nginx HTTPS, systemd, SSH, đĩa XFS có quota), kết thúc bằng `vmu-doctor` kiểm tra từng mục. Profile `test` chạy được trên VPS rẻ không GPU (1 CPU, 1 GB RAM) với giới hạn thu nhỏ. Xem [huong-dan-trien-khai.md](huong-dan-trien-khai.md); tài liệu cho người dùng: [huong-dan-su-dung.md](huong-dan-su-dung.md).
+
 ## 4. Luồng chính
 
 ### 4.1. Có tài khoản
