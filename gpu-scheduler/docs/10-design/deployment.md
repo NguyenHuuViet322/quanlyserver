@@ -65,8 +65,8 @@ deploy/install.sh --profile test --print-env     # chỉ in vmu.env sẽ ghi (kh
 |---|---|
 | `--profile prod\|test` | Bắt buộc |
 | `--domain` | Tên miền trỏ về máy; dùng cho Nginx, chứng chỉ Let's Encrypt, `SSH_HOST`, `DASHBOARD_URL` |
-| `--email` | Email đăng ký Let's Encrypt |
-| `--google-client-id` | OAuth Client ID (Authorized JavaScript origin: `https://<domain>`) |
+| `--email` | Email nhận thông báo của Let's Encrypt; không có thì `--register-unsafely-without-email` |
+| `--google-client-id` | OAuth Client ID (Authorized JavaScript origin: `https://<domain>`). Không có → `chua-cau-hinh.apps.googleusercontent.com` (cài được, đăng nhập chưa chạy); truyền ở lần chạy sau thì ghi đè |
 | `--self-signed` | Không xin Let's Encrypt, dùng chứng chỉ tự ký (chỉ để thử; đăng nhập Google sẽ không chạy) |
 | `--data-disk 8G`, `--docker-disk 10G` | Chỉ `test`: kích thước 2 file loop |
 | `--print-env` | In nội dung `vmu.env` rồi thoát |

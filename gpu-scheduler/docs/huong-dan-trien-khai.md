@@ -64,7 +64,9 @@ sudo bash deploy/install.sh --profile prod \
 
 Lần đầu mất khoảng 10–20 phút (phần lâu nhất là build image). Script kết thúc bằng bảng `vmu-doctor`; mọi dòng phải là `OK`.
 
-Chưa có tên miền? Có thể thử tạm bằng `--domain <IP> --self-signed`: Dashboard mở được (trình duyệt cảnh báo chứng chỉ) nhưng **đăng nhập Google sẽ không chạy**.
+**Chưa có tên miền:** dùng `--domain <a-b-c-d>.sslip.io` (IP viết bằng dấu gạch ngang, vd `222-255-180-51.sslip.io`). Tên này tự trỏ về IP, vẫn xin được chứng chỉ Let's Encrypt và dùng làm origin cho Google OAuth.
+
+**Chưa có Google Client ID / email:** bỏ qua hai cờ đó, script vẫn cài xong (đăng nhập Google chưa chạy; chứng chỉ không gắn email). Có Client ID thì chạy lại script kèm `--google-client-id <id>`.
 
 ## 3. Admin đầu tiên
 

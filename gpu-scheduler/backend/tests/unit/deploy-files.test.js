@@ -93,6 +93,11 @@ test('DP-T12 install.sh --print-env: profile test thu nhỏ, prod = mặc địn
     assert.equal(prod[k], d[k], k);
   }
 
+  // Chưa có OAuth Client ID: vẫn cài được với giá trị tạm (đăng nhập Google chưa chạy)
+  const noId = run('--profile', 'test', '--domain', '222-255-180-51.sslip.io', '--print-env');
+  assert.equal(noId.status, 0, noId.stderr);
+  assert.equal(parseEnv(noId.stdout).GOOGLE_CLIENT_ID, 'chua-cau-hinh.apps.googleusercontent.com');
+
   assert.notEqual(run('--print-env').status, 0, 'thiếu --profile');
   assert.notEqual(run('--profile', 'lab', '--print-env').status, 0, 'profile lạ');
 });

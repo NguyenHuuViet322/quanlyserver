@@ -34,8 +34,8 @@ usage() {
 Cờ:
   --profile prod|test       bắt buộc
   --domain <tên miền>       bắt buộc; trỏ DNS về máy này
-  --email <email>           đăng ký Let's Encrypt
-  --google-client-id <id>   OAuth Client ID (origin https://<tên miền>)
+  --email <email>           email nhận thông báo của Let's Encrypt (không bắt buộc)
+  --google-client-id <id>   OAuth Client ID (origin https://<tên miền>); chưa có thì bỏ qua, thêm sau
   --self-signed             dùng chứng chỉ tự ký thay Let's Encrypt (đăng nhập Google sẽ không chạy)
   --data-disk 6G            profile test: kích thước ổ XFS cho /data
   --docker-disk 10G         profile test: kích thước ổ XFS cho /var/lib/docker
@@ -73,6 +73,9 @@ else
   P_BASE_IMAGE=vmu/base:lite
 fi
 
+# Chưa có OAuth Client ID: cài được, nhưng đăng nhập Google chưa chạy. Có ID thì chạy lại với --google-client-id (ghi đè).
+NO_CLIENT_ID=chua-cau-hinh.apps.googleusercontent.com
+
 gen_hex() { head -c "$1" /dev/urandom | od -An -tx1 | tr -d ' \n'; }
 gen_password() { LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 32 || true; }
 
@@ -96,7 +99,7 @@ render_env() {
 VMU_PROFILE=$(keep VMU_PROFILE "$PROFILE")
 DATABASE_URL=$db_url
 PASSWORD_ENC_KEY=$enc_key
-GOOGLE_CLIENT_ID=$(keep GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID_ARG")
+GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID_ARG:-$(keep GOOGLE_CLIENT_ID "$NO_CLIENT_ID")}
 SSH_HOST=$(keep SSH_HOST "$DOMAIN")
 DASHBOARD_URL=$(keep DASHBOARD_URL "https://$DOMAIN")
 HOST=127.0.0.1
@@ -124,8 +127,6 @@ fi
 [[ $EUID -eq 0 ]] || die "cần chạy bằng root (sudo)"
 . /etc/os-release
 [[ "${ID:-}" == ubuntu && "${VERSION_ID:-}" == 24.04 ]] || die "chỉ hỗ trợ Ubuntu 24.04 (máy này: ${PRETTY_NAME:-?})"
-[[ -n "$GOOGLE_CLIENT_ID_ARG" || -n "$(env_get GOOGLE_CLIENT_ID)" ]] || die "thiếu --google-client-id"
-[[ $SELF_SIGNED -eq 1 || -n "$EMAIL" || -d "/etc/letsencrypt/live/$DOMAIN" ]] || die "thiếu --email (Let's Encrypt) hoặc dùng --self-signed"
 export DEBIAN_FRONTEND=noninteractive
 
 step_packages() {
@@ -377,7 +378,9 @@ step_nginx() {
     if [[ ! -f "$cert" ]]; then
       # Lần đầu: site mặc định của Ubuntu phục vụ /var/www/html trên cổng 80 cho thử thách ACME
       systemctl start nginx
-      certbot certonly --webroot -w /var/www/html -d "$DOMAIN" --email "$EMAIL" --agree-tos -n \
+      local contact=(--email "$EMAIL")
+      [[ -n "$EMAIL" ]] || contact=(--register-unsafely-without-email)
+      certbot certonly --webroot -w /var/www/html -d "$DOMAIN" "${contact[@]}" --agree-tos -n \
         --deploy-hook 'systemctl reload nginx' \
         || die "không xin được chứng chỉ: kiểm tra DNS của $DOMAIN trỏ về máy này và cổng 80 mở"
     fi
@@ -430,4 +433,5 @@ Xong. Dashboard: https://$DOMAIN
   3. Kiểm tra lại bất cứ lúc nào:   sudo vmu-doctor
 EOF
 [[ "$PROFILE" == test ]] && echo "  Profile test: không có GPU — ca có GPU sẽ báo lỗi khởi chạy."
+[[ "$GOOGLE_CLIENT_ID" == "$NO_CLIENT_ID" ]] && echo "  CHƯA có Google Client ID: đăng nhập chưa chạy. Tạo Client ID (origin https://$DOMAIN) rồi chạy lại script với --google-client-id <id>."
 [[ $doctor_ok -eq 1 ]] || { echo; die "vmu-doctor còn mục FAIL, xem ở trên"; }
