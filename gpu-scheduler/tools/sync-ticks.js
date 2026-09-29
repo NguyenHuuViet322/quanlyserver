@@ -50,7 +50,8 @@ function readJUnit(files) {
   const results = new Map();
   for (const f of files) {
     const xml = fs.readFileSync(f, 'utf8');
-    for (const m of xml.matchAll(/<testcase\b([^>]*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g)) {
+    // Thuộc tính có thể chứa ">" chưa escape (vd tên test "name > 60"): bỏ qua ">" nằm trong dấu nháy
+    for (const m of xml.matchAll(/<testcase\b((?:[^>"]|"[^"]*")*?)(?:\/>|>([\s\S]*?)<\/testcase>)/g)) {
       const name = decode((m[1].match(/\bname="([^"]*)"/) || [])[1] || '');
       const id = (name.match(ID_RE) || [])[1];
       if (!id) continue;
