@@ -38,6 +38,7 @@ const P = {
   code: '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
   'chevron-left': '<path d="m15 18-6-6 6-6"/>',
   'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  'chevron-down': '<path d="m6 9 6 6 6-6"/>',
   box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
 };
 
@@ -129,7 +130,7 @@ const TIME_REASONS = {
 export function errorMessage(e) {
   switch (e.code) {
     case 'SLOT_FULL': return 'Khung giờ này đã đủ 2 phiên. Hãy chọn giờ khác.';
-    case 'GPU_BUSY': return 'Khung giờ này đã có người dùng GPU. Bạn có thể đặt phiên không GPU hoặc chọn giờ khác.';
+    case 'GPU_BUSY': return 'Khung giờ này đã có người dùng GPU. Bạn có thể tắt GPU hoặc chọn giờ khác.';
     case 'GPU_QUOTA_EXCEEDED': return 'Bạn đã dùng hết 10 giờ GPU tuần này. Bạn vẫn đặt được khung GPU còn trống trong 24 giờ tới.';
     case 'USER_OVERLAP': return 'Bạn đã có một ca khác trong khoảng thời gian này.';
     case 'INVALID_TIME': return TIME_REASONS[e.details?.reason] || 'Thời gian ca không hợp lệ.';
@@ -145,19 +146,20 @@ export function errorMessage(e) {
   }
 }
 
-// ---- Trạng thái ca ----
+// ---- Trạng thái ca — REQ-UI-17: luôn có chữ + màu ----
 const STATUS = {
-  scheduled: ['Đã đặt', 'tag-brand'],
-  starting: ['Đang khởi chạy', 'tag-warning'],
+  scheduled: ['Sắp tới', 'tag-brand'],
+  starting: ['Đang khởi động', 'tag-warning'],
   running: ['Đang chạy', 'tag-success'],
   exited: ['Đã dừng giữa chừng', 'tag-warning'],
   stopping: ['Đang dừng', 'tag-warning'],
   completed: ['Hoàn thành', 'tag-neutral'],
-  cancelled: ['Đã hủy', 'tag-neutral'],
-  failed: ['Lỗi', 'tag-danger'],
+  cancelled: ['Đã hủy', 'tag-danger'],
+  failed: ['Lỗi khởi chạy', 'tag-danger'],
 };
-export function statusTag(status) {
-  const [label, cls] = STATUS[status] || [status, 'tag-neutral'];
+export const statusLabel = (status, exitReason) => (exitReason === 'OOM' ? 'Dừng do hết RAM' : (STATUS[status] || [status])[0]);
+export function statusTag(status, exitReason = null) {
+  const [label, cls] = exitReason === 'OOM' ? ['Dừng do hết RAM', 'tag-danger'] : STATUS[status] || [status, 'tag-neutral'];
   return `<span class="tag ${cls}">${esc(label)}</span>`;
 }
 export const gpuTag = (useGpu) => (useGpu ? '<span class="tag tag-gpu">GPU</span>' : '<span class="tag tag-neutral">Không GPU</span>');

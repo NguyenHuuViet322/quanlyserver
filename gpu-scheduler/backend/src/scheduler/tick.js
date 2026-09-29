@@ -28,6 +28,11 @@ async function appendLog(cfg, bookingId, text) {
   await fs.appendFile(path.join(cfg.logDir, `${bookingId}.log`), text.endsWith('\n') ? text : `${text}\n`);
 }
 
+// REQ-MN-03: sự kiện của hệ thống (người thực hiện NULL = system)
+async function auditSystem(db, action, bookingId, details = {}) {
+  await db.query('INSERT INTO audit_log (actor_id, action, target, details) VALUES (NULL, $1, $2, $3)', [action, `booking:${bookingId}`, details]);
+}
+
 async function notify(db, userId, bookingId, kind, message) {
   await db.query('INSERT INTO notifications (user_id, booking_id, kind, message) VALUES ($1, $2, $3, $4)', [userId, bookingId, kind, message]);
 }
@@ -82,7 +87,10 @@ async function startOne(e, booking, now) {
     await appendLog(e.cfg, booking.id, `[${now.toISOString()}] Lỗi khởi chạy container: ${err.message}`);
     const { rowCount } = await e.db.query(
       `UPDATE bookings SET status = 'failed', exit_reason = 'ERROR' WHERE id = $1 AND status = 'starting'`, [booking.id]);
-    if (rowCount) await notify(e.db, booking.user_id, booking.id, 'START_FAILED', `Không khởi chạy được ca #${booking.id}: ${err.message}`);
+    if (rowCount) {
+      await notify(e.db, booking.user_id, booking.id, 'START_FAILED', `Không khởi chạy được ca #${booking.id}: ${err.message}`);
+      await auditSystem(e.db, 'booking.start_failed', booking.id, { error: err.message.slice(0, 500) });
+    }
   }
 }
 
@@ -106,6 +114,7 @@ async function syncExited(e) {
       `UPDATE bookings SET status = 'exited', exit_reason = $2 WHERE id = $1 AND status = 'running'`, [b.id, reason]);
     if (rowCount && reason === 'OOM') {
       await notify(e.db, b.user_id, b.id, 'OOM', `Ca #${b.id}: tiến trình vượt giới hạn RAM và bị dừng (OOM)`);
+      await auditSystem(e.db, 'booking.oom', b.id);
     }
   }
 }

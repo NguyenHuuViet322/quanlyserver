@@ -40,3 +40,6 @@
 - [x] **US-T26** (REQ-US-16) · happy · integration — Xóa user → dữ liệu còn nguyên, `purge_after = now + 30 ngày`; chạy cron purge với thời gian giả lập +31 ngày → dữ liệu bị xóa ✅ `9542e97`
 - [x] **US-T27** (REQ-US-14) · negative · integration — Gọi `GET /me` không có cookie → `401 UNAUTHENTICATED` ✅ `9542e97`
 - [x] **US-T30** (REQ-US-14) · happy · integration — Admin gọi `GET /admin/users` → `200` ✅ `9542e97`
+- [ ] **US-T32** (REQ-US-17) · negative · integration — Admin từ chối tài khoản `pending` → `rejected`, không tạo user Linux; tài khoản đó đăng nhập → `403 ACCOUNT_REJECTED`; từ chối tài khoản `active` → `409 INVALID_STATE`; duyệt lại tài khoản `rejected` → `200`, `active`
+- [ ] **US-T33** (REQ-US-18) · happy · integration — Admin cấp lại mật khẩu SSH cho user `active` → `200`, response không chứa mật khẩu; mật khẩu Linux đổi và phải đổi khi SSH; user mở `GET /me/password` → thấy đúng mật khẩu mới; cấp lại cho user `pending` → `409 INVALID_STATE`; user thường gọi → `403 FORBIDDEN`
+- [ ] **US-T34** (REQ-US-13) · edge · integration — Thêm key kèm `name` → danh sách trả đúng tên; không có `name` → lấy chú thích cuối key, không có chú thích → lấy loại key; `name` dài 61 ký tự → `400 VALIDATION_ERROR`

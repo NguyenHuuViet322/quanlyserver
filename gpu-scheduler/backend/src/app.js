@@ -93,6 +93,7 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
     const user = await users.userFromSession(ctx, req.cookies[SID]);
     if (!user) throw err.unauthenticated();
     if (user.status === 'locked' || user.status === 'deleted') throw err.accountLocked();
+    if (user.status === 'rejected') throw err.accountRejected();
     req.user = user;
 
     if (path.startsWith('/api/admin/')) {
@@ -125,6 +126,7 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
     const me = users.publicUser(req.user, cfg);
     if (req.user.status === 'active') {
       me.storage = storageOf(req.user, cfg);
+      me.gpu_quota = await bookings.gpuQuotaOf(ctx, req.user);
     }
     return me;
   });
@@ -149,8 +151,8 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
   app.get('/api/me/ssh-keys', async (req) => users.listSshKeys(ctx, req.user));
 
   app.post('/api/me/ssh-keys', {
-    schema: { body: { type: 'object', required: ['public_key'], properties: { public_key: { type: 'string' } } } },
-  }, async (req, reply) => reply.code(201).send(await users.addSshKey(ctx, req.user, req.body.public_key)));
+    schema: { body: { type: 'object', required: ['public_key'], properties: { public_key: { type: 'string' }, name: { type: 'string', maxLength: 60 } } } },
+  }, async (req, reply) => reply.code(201).send(await users.addSshKey(ctx, req.user, req.body.public_key, req.body.name)));
 
   app.delete('/api/me/ssh-keys/:id', async (req, reply) => {
     await users.removeSshKey(ctx, req.user, Number(req.params.id) || 0);
@@ -172,6 +174,7 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
   app.get('/api/calendar', async (req) => bookings.calendar(ctx, req.user, req.query));
   app.get('/api/bookings', async (req) => bookings.listBookings(ctx, req.user, req.query));
   app.get('/api/bookings/:id', async (req) => bookings.getBooking(ctx, req.user, bookingId(req)));
+  app.post('/api/bookings/check', { schema: { body: bookingBody } }, async (req) => bookings.checkBooking(ctx, req.user, req.body));
   app.post('/api/bookings', { schema: { body: bookingBody } }, async (req, reply) =>
     reply.code(201).send(await bookings.createBooking(ctx, req.user, req.body)));
   app.post('/api/bookings/:id/cancel', async (req) => bookings.cancelBooking(ctx, req.user, bookingId(req)));
@@ -201,6 +204,8 @@ async function buildApp({ db, system, docker, clock = { now: () => new Date() },
 
   app.get('/api/admin/users', async (req) => users.listUsers(ctx, req.query.status));
   app.post('/api/admin/users/:id/approve', async (req) => ({ user: await users.approveUser(ctx, req.user.id, idParam(req)) }));
+  app.post('/api/admin/users/:id/reject', async (req) => ({ user: await users.rejectUser(ctx, req.user.id, idParam(req)) }));
+  app.post('/api/admin/users/:id/password-reset', async (req) => ({ user: await users.adminResetPassword(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/lock', async (req) => ({ user: await users.lockUser(ctx, req.user.id, idParam(req)) }));
   app.post('/api/admin/users/:id/unlock', async (req) => ({ user: await users.unlockUser(ctx, req.user.id, idParam(req)) }));
   app.get('/api/admin/audit', async (req) => monitoring.listAudit(ctx, req.query));

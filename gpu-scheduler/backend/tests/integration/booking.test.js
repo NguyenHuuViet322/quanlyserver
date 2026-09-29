@@ -169,21 +169,75 @@ describe('M2 — Đặt lịch', () => {
     assert.equal(res.json().ports, undefined);
   });
 
-  test('BK-T42 GET /calendar trả ca hiệu lực của mọi người kèm username, use_gpu, mine; bỏ ca cancelled/completed/failed; quá 8 ngày → 400', async () => {
+  test('BK-T42 GET /calendar: ca của mọi người kèm username, use_gpu, status, mine; có completed, không có cancelled/failed; quá 8 ngày hoặc quá 28 ngày trước → 400', async () => {
     const a = (await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), true)).json();
     const b = (await book(B, vn('2026-10-06T09:00:00'), vn('2026-10-06T12:00:00'))).json();
+    const done = await insertBooking(C, vn('2026-10-05T06:00:00'), vn('2026-10-05T08:00:00'), false, 'completed');
     await insertBooking(C, vn('2026-10-06T13:00:00'), vn('2026-10-06T14:00:00'), false, 'cancelled');
-    await insertBooking(C, vn('2026-10-05T06:00:00'), vn('2026-10-05T08:00:00'), false, 'completed');
     await insertBooking(D, vn('2026-10-06T15:00:00'), vn('2026-10-06T16:00:00'), false, 'failed');
     const res = await t.req('GET', '/api/calendar?from=2026-10-05&to=2026-10-13', A.cookie);
     assert.equal(res.statusCode, 200, res.body);
     assert.deepEqual(res.json(), [
-      { id: a.id, start: '2026-10-06T08:00:00+07:00', end: '2026-10-06T10:00:00+07:00', username: 'a', use_gpu: true, mine: true },
-      { id: b.id, start: '2026-10-06T09:00:00+07:00', end: '2026-10-06T12:00:00+07:00', username: 'b', use_gpu: false, mine: false },
+      { id: done, start: '2026-10-05T06:00:00+07:00', end: '2026-10-05T08:00:00+07:00', username: 'c', use_gpu: false, status: 'completed', mine: false },
+      { id: a.id, start: '2026-10-06T08:00:00+07:00', end: '2026-10-06T10:00:00+07:00', username: 'a', use_gpu: true, status: 'scheduled', mine: true },
+      { id: b.id, start: '2026-10-06T09:00:00+07:00', end: '2026-10-06T12:00:00+07:00', username: 'b', use_gpu: false, status: 'scheduled', mine: false },
     ]);
     const tooLong = await t.req('GET', '/api/calendar?from=2026-10-05&to=2026-10-14', A.cookie);
     assert.equal(tooLong.statusCode, 400);
     assert.equal(code(tooLong), 'VALIDATION_ERROR');
+    const tooOld = await t.req('GET', '/api/calendar?from=2026-09-06&to=2026-09-13', A.cookie);
+    assert.equal(tooOld.statusCode, 400);
+    const ok28 = await t.req('GET', '/api/calendar?from=2026-09-07&to=2026-09-14', A.cookie);
+    assert.equal(ok28.statusCode, 200);
+  });
+
+  test('BK-T43 POST /bookings/check: từng quy tắc khớp với kết quả POST /bookings, không tạo ca', async () => {
+    const check = (u, start, end, use_gpu) => t.req('POST', '/api/bookings/check', u.cookie, { start: vn(start), end: vn(end), use_gpu });
+    const rules = (res) => Object.fromEntries(res.json().checks.map((c) => [c.rule, c.ok ? true : c.ok === null ? null : c.code]));
+    // Hợp lệ
+    let r = await check(A, '2026-10-06T08:00:00', '2026-10-06T10:00:00', true);
+    assert.equal(r.statusCode, 200, r.body);
+    assert.equal(r.json().ok, true);
+    assert.deepEqual(rules(r), { TIME: true, USER_OVERLAP: true, CAPACITY: true, GPU_QUOTA: true });
+    assert.equal(await count(), 0, 'check đã tạo ca');
+    // Dựng tình huống
+    assert.equal((await book(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T10:00:00'), true)).statusCode, 201);
+    assert.equal((await book(B, vn('2026-10-06T14:00:00'), vn('2026-10-06T16:00:00'))).statusCode, 201);
+    assert.equal((await book(C, vn('2026-10-06T14:00:00'), vn('2026-10-06T16:00:00'))).statusCode, 201);
+    await insertBooking(D, vn('2026-10-07T00:00:00'), vn('2026-10-07T05:00:00'), true, 'scheduled');
+    await insertBooking(D, vn('2026-10-08T00:00:00'), vn('2026-10-08T05:00:00'), true, 'scheduled');
+    const cases = [
+      [B, '2026-10-06T09:00:00', '2026-10-06T11:00:00', true, 'CAPACITY', 'GPU_BUSY'],
+      [D, '2026-10-06T15:00:00', '2026-10-06T16:00:00', false, 'CAPACITY', 'SLOT_FULL'],
+      [A, '2026-10-06T09:00:00', '2026-10-06T11:00:00', false, 'USER_OVERLAP', 'USER_OVERLAP'],
+      [D, '2026-10-09T08:00:00', '2026-10-09T10:00:00', true, 'GPU_QUOTA', 'GPU_QUOTA_EXCEEDED'],
+    ];
+    for (const [u, s1, e1, gpu, rule, errCode] of cases) {
+      r = await check(u, s1, e1, gpu);
+      assert.equal(r.json().ok, false, errCode);
+      assert.equal(rules(r)[rule], errCode, errCode);
+      const real = await book(u, vn(s1), vn(e1), gpu);
+      assert.equal(real.statusCode, 409, errCode);
+      assert.equal(code(real), errCode);
+    }
+    // Giờ trong quá khứ: TIME lỗi, các quy tắc khác chưa kiểm
+    r = await check(A, '2026-10-05T08:00:00', '2026-10-05T09:00:00', false);
+    const time = r.json().checks.find((c) => c.rule === 'TIME');
+    assert.deepEqual({ ok: time.ok, code: time.code, reason: time.reason }, { ok: false, code: 'INVALID_TIME', reason: 'IN_PAST' });
+    assert.deepEqual(rules(r), { TIME: 'INVALID_TIME', USER_OVERLAP: null, CAPACITY: null, GPU_QUOTA: null });
+    assert.equal(code(await book(A, vn('2026-10-05T08:00:00'), vn('2026-10-05T09:00:00'), false)), 'INVALID_TIME');
+    // Thiếu use_gpu → 400
+    const bad = await t.req('POST', '/api/bookings/check', A.cookie, { start: vn('2026-10-06T08:00:00'), end: vn('2026-10-06T10:00:00') });
+    assert.equal(bad.statusCode, 400);
+  });
+
+  test('BK-T44 GET /me có gpu_quota tuần hiện tại: tính ca GPU đã đặt và giờ thực dùng của ca completed', async () => {
+    await insertBooking(A, vn('2026-10-06T08:00:00'), vn('2026-10-06T11:00:00'), true, 'scheduled');
+    await insertBooking(A, vn('2026-10-05T00:00:00'), vn('2026-10-05T04:00:00'), true, 'completed', { start: vn('2026-10-05T00:00:00'), end: vn('2026-10-05T01:00:00') });
+    await insertBooking(A, vn('2026-10-07T08:00:00'), vn('2026-10-07T12:00:00'), false, 'scheduled');
+    await insertBooking(A, vn('2026-10-12T08:00:00'), vn('2026-10-12T12:00:00'), true, 'scheduled'); // tuần sau
+    const me = (await t.req('GET', '/api/me', A.cookie)).json();
+    assert.deepEqual(me.gpu_quota, { week_start: '2026-10-05T00:00:00+07:00', limit_hours: 10, used_hours: 4, remaining_hours: 6 });
   });
 
   test('BK-T33 start không có múi giờ → 400 INVALID_TIME, reason MISSING_TIMEZONE', async () => {

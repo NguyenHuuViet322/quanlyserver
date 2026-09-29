@@ -53,9 +53,11 @@ flowchart LR
 
 ### 4.2. Đặt ca
 
-1. Mở **Lịch** (trang chính): thấy 8 ngày tới, mỗi ca là một khối ghi **ai đang dùng** và có GPU hay không.
-2. Bấm vào khoảng trống (hoặc nút **Đặt ca**) → chọn **ngày, từ giờ, đến giờ, có dùng GPU không**.
-3. Hệ thống kiểm tra:
+Dashboard có 4 trang trên thanh điều hướng ngang: **Lịch đặt ca**, **Ca của tôi**, **Tài khoản & Key**, **Quản trị** (chỉ admin); menu tài khoản ở góc phải (họ tên, email, dung lượng, đổi mật khẩu SSH, đăng xuất). Chi tiết: [giao-dien.md](giao-dien.md).
+
+1. Mở **Lịch đặt ca** (trang chính): 8 ngày × 24 giờ, mỗi ca là một thẻ ghi **ai đang dùng** và có GPU hay không; xem lại được 4 tuần trước. Góc trên có "Hạn mức GPU: x/10 giờ".
+2. Bấm vào giờ trống (hoặc nút **Đặt ca mới**) → chọn **ngày, từ giờ, đến giờ**, bật công tắc **Sử dụng GPU** nếu cần (mặc định tắt). Bấm vào một ca để xem chi tiết; giờ đó còn chỗ thì đặt ca luôn.
+3. Hệ thống kiểm tra ngay khi chọn (4 dòng ✓/✗ trong hộp thoại), và kiểm tra lại khi xác nhận:
 
 | Quy tắc | Lỗi nếu vi phạm |
 |---|---|
@@ -116,7 +118,8 @@ Không có quyền root trong container, nhưng `HOME=/workspace` nên mọi th�
 - **Dung lượng:** đọc quota mỗi 5 phút. Vượt 80 GiB → cảnh báo kèm hạn dọn 7 ngày; quá hạn thì không ghi thêm được. Chạm 100 GiB → không ghi được. **Server không sao lưu** — người dùng tự sao lưu.
 - **Thông báo** (chuông trên Dashboard): sắp hết ca, không khởi chạy được, OOM, vượt dung lượng.
 - **Quản trị:** duyệt / khóa (hủy ca sắp tới, dừng phiên đang chạy) / xóa (giữ dữ liệu 30 ngày, UID không cấp lại); nhật ký mọi thao tác quan trọng (không chứa mật khẩu).
-- **Ca của tôi:** xem ca đang chạy / sắp tới / đã xong, hủy, kết thúc sớm, khởi động lại, xem log và số liệu CPU/RAM/GPU.
+- **Ca của tôi:** khối ca đang chạy (còn bao lâu, tài nguyên, biểu đồ CPU/RAM/GPU cập nhật 5 giây, hướng dẫn kết nối, nhật ký container), bảng mọi ca với thao tác hủy / xem log / xem lý do. Còn 15 phút → popup đếm ngược.
+- **Quản trị:** 3 tab Duyệt tài khoản (duyệt / từ chối), Quản lý người dùng (khóa / xóa / cấp lại mật khẩu SSH), Nhật ký (lọc theo người dùng, loại sự kiện, ngày).
 
 ## 5. Nguyên tắc an toàn
 
@@ -170,12 +173,19 @@ Trạng thái **luôn có chữ đi kèm** (vd "Đang chạy", "Đã hủy"), kh
 
 | Thành phần | Màu |
 |---|---|
-| Ca của bạn | Nền `--brand`, chữ trắng |
-| Ca người khác | Nền `#e9ecf4`, chữ `#1f2937`, vạch trái `#9aa3b5` |
-| Ca có GPU | Chip "GPU" nền `#0f172a` chữ trắng (trên ca của bạn: nền trắng chữ xanh); ca người khác có GPU thì vạch trái đậm `#0f172a` |
+Mỗi ca là thẻ trắng có vạch màu bên trái và nhãn tên:
+
+| Thành phần | Màu |
+|---|---|
+| Ca của bạn | Nền `#f7f8ff`, vạch trái `--brand`, nhãn tên nền `--brand` chữ trắng |
+| Ca GPU người khác | Nền trắng, vạch trái `#7c3aed`, nhãn tên nền `#ede5ff` chữ `#5b21b6`; dòng "GPU RTX 5090" màu tím |
+| Ca CPU người khác | Nền trắng, vạch trái `#8a94a8`, nhãn tên nền `#eceff4` chữ `#334155` |
+| Ca đã xong | Như trên, mờ 60% |
 | Cột hôm nay | Nền `--brand-softer`, ngày ghi trong viên thuốc `--brand` |
-| Giờ đã qua | Phủ xám rất nhạt, không bấm được |
-| Thời điểm hiện tại | Vạch ngang `--vmu-red` có chấm tròn |
+| Giờ đã qua | Nền xám phẳng `#f6f7fa`, không bấm được |
+| Thứ Bảy, Chủ nhật | Chữ thứ màu `--vmu-red` |
+| Thời điểm hiện tại | Vạch ngang `--vmu-red` có chấm tròn, nhãn giờ ở cột giờ |
+| Hạn mức GPU | Viên `--brand-softer`; > 8 giờ chuyển `--warning-soft` / `--warning` |
 
 ### Độ tương phản (WCAG)
 

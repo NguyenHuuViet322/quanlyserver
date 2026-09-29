@@ -23,9 +23,9 @@ function createDocker() {
     },
     async inspect(name) {
       try {
-        const { stdout } = await docker(['inspect', '--type', 'container', '--format', '{{json .State}}', name]);
-        const s = JSON.parse(stdout);
-        return { running: s.Running, exitCode: s.ExitCode, oomKilled: s.OOMKilled };
+        const { stdout } = await docker(['inspect', '--type', 'container', '--format', '{"State":{{json .State}},"NanoCpus":{{.HostConfig.NanoCpus}}}', name]);
+        const { State: s, NanoCpus } = JSON.parse(stdout);
+        return { running: s.Running, exitCode: s.ExitCode, oomKilled: s.OOMKilled, cpus: NanoCpus ? NanoCpus / 1e9 : null };
       } catch (e) {
         if (isNoSuch(e)) return null;
         throw e;

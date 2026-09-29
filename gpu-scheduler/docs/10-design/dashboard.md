@@ -1,43 +1,89 @@
-# Dashboard — REQ-UI-01..03, REQ-UI-05..11
+# Dashboard — REQ-UI-01..03, REQ-UI-05..17
 
-SPA thuần (ES module, không bước build) trong `frontend/src/`, gọi API trong [api.md](api.md). Mọi văn bản bằng tiếng Việt. Định tuyến bằng hash để có deep link: `#/` Lịch (trang chính), `#/ca` Ca của tôi, `#/ket-noi` Kết nối, `#/quan-tri?tab=users|audit`.
+**Mô tả giao diện gốc:** [`docs/giao-dien.md`](../giao-dien.md) (bố cục, thành phần, luồng). Tài liệu này ánh xạ từng phần sang REQ và cách hiện thực. Bảng màu: [tong-quan.md § 6](../tong-quan.md#6-giao-diện-bảng-màu).
 
-**Nguyên tắc:** gọn, ít chữ. Mỗi trang một việc chính; thông tin phụ chỉ hiện khi cần (cảnh báo dung lượng chỉ hiện khi vượt 80 GiB, dải cổng và giờ GPU còn lại không hiển thị — REQ-UI-05).
+SPA thuần (ES module, không bước build) trong `frontend/src/`, gọi API trong [api.md](api.md). Mọi văn bản tiếng Việt, mọi giờ là giờ Việt Nam (REQ-UI-10). Định tuyến bằng hash: `#/` Lịch đặt ca, `#/ca` Ca của tôi, `#/tai-khoan` Tài khoản & Key, `#/quan-tri?tab=pending|users|audit`. Tối ưu cho desktop; màn hình hẹp vẫn dùng được (lịch xem từng ngày, không cuộn ngang).
 
-**Giao diện:** màu từ logo VMU (`icon.svg`): xanh chủ đạo `#1f2bd0`, đỏ VMU `#e0101f` chỉ làm điểm nhấn thương hiệu; nền trắng/xám nhạt; font Inter; icon SVG nét 1.75 (không emoji); token trong `styles.css`. Trạng thái luôn có chữ, không chỉ dựa vào màu; vùng bấm ≥ 44px; tôn trọng `prefers-reduced-motion`. Nội dung **dàn hết chiều rộng** màn hình (không có dải trắng ở màn hình lớn).
+## Khung trang — REQ-UI-05
 
-**Chạy thử trên máy local:** `npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev để chọn tài khoản mẫu (CSDL riêng `vmu_dev`, đồng hồ thật, Google/hệ thống/Docker giả). Mỗi lần khởi động lại, dữ liệu mẫu và phiên đăng nhập được tạo lại; trang đăng nhập hiện nút "Chạy thử: chọn tài khoản mẫu" (chỉ khi chạy thử, cờ `dev_login` trong `/api/config`). Production: Nginx phục vụ `frontend/src/`.
+| Vùng | Nội dung |
+|---|---|
+| Trái | Logo VMU + "VMU GPU Server" (về Lịch) |
+| Giữa | Lịch đặt ca · Ca của tôi · Tài khoản & Key · Quản trị (chỉ admin); mục đang mở được tô |
+| Phải | Chuông (số chưa đọc nền `--vmu-red`); **menu tài khoản**: họ tên, email, thanh dung lượng nhỏ `x / 100 GiB`, "Đổi mật khẩu SSH" (→ Tài khoản & Key), "Đăng xuất" |
 
-**Đăng nhập:** nút của trang gọi Google Identity Services (One Tap, bị chặn thì hiện nút chính thức) → `POST /api/auth/google`.
+Vượt soft quota → dải cảnh báo đỏ đầu mọi trang (REQ-ST-02).
 
-| Màn hình | Nội dung | REQ |
+## Trang 1 — Lịch đặt ca (`#/`) — REQ-UI-02, REQ-UI-12
+
+- **Thanh công cụ:** `‹  29/09 – 06/10/2026  ›` (lùi tối đa 4 tuần để xem lại, không tiến quá 7 ngày tới); badge **"Hạn mức GPU: 4/10 giờ"** (màu `--warning` khi > 8 giờ); nút **"+ Đặt ca mới"**; chú giải: Ca của bạn / Ca GPU người khác / Ca CPU người khác / Đã qua.
+- **Lưới:** 24 giờ × 8 ngày, cột hôm nay nền `--brand-softer`, vạch đỏ giờ hiện tại, giờ đã qua kẻ sọc mờ.
+- **Khối ca** (dữ liệu `GET /calendar`, REQ-BK-14): tên người dùng; ca của mình nền `--brand`; ca GPU người khác nền xám đậm + chip `GPU`; ca không GPU người khác nền xám nhạt; tối đa 2 làn/ngày. Rê chuột: tooltip `vietnh · Trạng thái: Sắp tới | Loại: Có GPU`.
+- **Bấm khoảng trống** (tương lai, còn chỗ) → hộp thoại đặt ca điền sẵn ngày/giờ.
+
+## Hộp thoại Đặt ca mới — REQ-UI-01, REQ-UI-14
+
+- Ngày (8 ngày), Từ giờ (giờ tròn; giờ đã bắt đầu bị khóa), Đến giờ (1–8 giờ sau; qua nửa đêm ghi "(+1 ngày)").
+- **Công tắc "Sử dụng GPU RTX 5090"**, mặc định tắt; tóm tắt ghi rõ "có GPU" / "không dùng GPU".
+- **Kiểm tra quy tắc tức thì:** mỗi lần đổi lựa chọn gọi `POST /bookings/check` (chống dồn: chỉ lấy kết quả của lần gọi mới nhất) và hiện 4 dòng ✅/❌ kèm lý do tiếng Việt:
+  1. Khung giờ hợp lệ (giờ tròn, 1–8 giờ, không ở quá khứ, ≤ 7 ngày tới)
+  2. Không trùng ca khác của bạn
+  3. Còn chỗ trên máy (tối đa 2 phiên, 1 GPU)
+  4. Đủ hạn mức GPU tuần
+- Nút **Xác nhận đặt ca** chỉ bấm được khi cả 4 dòng đạt. Nếu `POST /bookings` vẫn lỗi (người khác vừa đặt) → hiện thông báo theo mã lỗi (REQ-UI-03) và kiểm tra lại.
+
+## Trang 2 — Ca của tôi (`#/ca`) — REQ-UI-06, REQ-UI-11, REQ-UI-13, REQ-UI-17
+
+**Khối ca đang hoạt động** (khi có ca `starting` / `running` / `exited`):
+- Dòng tiêu đề: trạng thái, **Mã ca #id**, "Kết thúc lúc 17:00 (Còn 01 giờ 25 phút)", nút **Mở nhật ký**, **Kết thúc sớm** (nền `--danger-soft`), **Khởi động lại** (khi `exited`).
+- Dòng tài nguyên: `RTX 5090 (1 GPU)` nếu có GPU · `14/28 GiB RAM` · `15 lõi CPU` (từ `/bookings/:id/metrics`).
+- 3 tab:
+  1. **Giám sát tài nguyên:** biểu đồ đường SVG (không thư viện ngoài) GPU %, VRAM %, CPU %, RAM %; lấy mẫu mỗi 5 giây, giữ 60 mẫu gần nhất (5 phút) trong trình duyệt.
+  2. **Hướng dẫn kết nối:** `ssh vietnh@gpu.vimaru.edu.vn` và đoạn `~/.ssh/config` (Host vmu … vmu-connect), mỗi thứ có nút sao chép; chưa có SSH key thì nhắc.
+  3. **Nhật ký container:** `GET /bookings/:id/logs?tail=500`, nút Làm mới.
+
+Không có ca đang hoạt động → thẻ **Hướng dẫn kết nối** vẫn hiện (REQ-UI-11).
+
+**Bảng ca:** Mã ca · Thời gian (`20:00 – 22:00` + "Hôm nay"/"Hôm qua"/ngày) · GPU (Có / Không) · Trạng thái (nhãn REQ-UI-17; OOM ghi "Dừng do hết RAM") · Thao tác (Hủy ca / Xem log / Xem lý do).
+
+| Trạng thái | Nhãn | Màu |
 |---|---|---|
-| Đăng nhập | Nút "Đăng nhập bằng Google" (`hd=vimaru.edu.vn` chỉ để gợi ý) | REQ-UI-07 |
-| Chờ duyệt | Hiện khi `status = pending`; ẩn toàn bộ chức năng khác | REQ-UI-07 |
-| Mật khẩu lần đầu | Mật khẩu, nút "Sao chép", cảnh báo "Chỉ hiển thị một lần", nút "Tôi đã lưu" | REQ-UI-08 |
-| **Lịch** (trang chính) | Lịch 8 ngày × 24 giờ chiếm toàn bộ chiều rộng. Mỗi ca là một khối liền ghi **tên người dùng** và nhãn GPU; tối đa 2 làn/ngày (2 phiên). Ca của mình tô màu chủ đạo. Giờ đã qua mờ đi. Bấm vào khoảng trống → hộp thoại đặt ca điền sẵn giờ. Màn hình hẹp (< 760px): xem từng ngày, có nút chuyển ngày | REQ-UI-02, REQ-UI-10 |
-| Hộp thoại đặt ca | **Ngày**, **từ giờ** (00–23), **đến giờ** (1–8 giờ sau giờ bắt đầu; qua nửa đêm ghi "(+1 ngày)"), **Dùng GPU: Có / Không (bắt buộc, không chọn sẵn)**; tóm tắt "05/10 22:00 – 06/10 02:00 (GMT+7), 4 giờ". Không chọn image, không nhập cổng | REQ-UI-01, REQ-UI-10, REQ-BK-10 |
-| Ca của tôi | Đang chạy / sắp tới / đã kết thúc; Hủy, Kết thúc sớm, Khởi động lại, Log, Số liệu | REQ-UI-06, REQ-MN-01, REQ-MN-02, REQ-MN-04 |
-| **Kết nối** | (1) SSH key: danh sách, thêm, xóa — chưa có key thì nhắc; (2) đoạn `~/.ssh/config` cho VS Code (nút sao chép) + hướng dẫn 3 bước; (3) lệnh `ssh` nhanh; (4) cấp lại mật khẩu; (5) dung lượng `/workspace` đã dùng / quota | REQ-UI-05, REQ-UI-11, REQ-US-12, REQ-US-13 |
-| Quản trị | Tab Tài khoản (lọc theo trạng thái; Duyệt / Khóa / Mở khóa / Xóa), tab Nhật ký | REQ-UI-09 |
+| `scheduled` | Sắp tới | nền `--brand-soft`, chữ `--brand-strong` |
+| `starting` / `stopping` | Đang khởi động / Đang dừng | `--warning` |
+| `running` | Đang chạy | `--success` |
+| `exited` | Đã dừng giữa chừng | `--warning` |
+| `failed`, `cancelled`, OOM | Lỗi / Đã hủy / Dừng do hết RAM | `--danger` |
+| `completed` | Hoàn thành | trung tính |
 
-Thanh trên cùng: tên trang, chuông thông báo, username (REQ-UI-05), đăng xuất. Vượt soft quota → dải cảnh báo đỏ ở đầu mọi trang kèm hạn dọn dẹp (REQ-ST-02).
+## Trang 3 — Tài khoản & Key (`#/tai-khoan`) — REQ-UI-16, REQ-US-12, REQ-US-13
+
+- **Thẻ dung lượng:** thanh `--brand` (< 80 GiB), `--warning` (80 – < 100 GiB, kèm hạn dọn 7 ngày), `--danger` (≥ 100 GiB, không ghi được); hộp nhắc "không sao lưu, tải file về bằng SFTP/SCP".
+- **SSH key:** bảng Tên · Fingerprint · Ngày thêm · Xóa; form **Tên gợi nhớ** + **Khóa public** + "Thêm SSH Key".
+- **Mật khẩu SSH:** "Tạo lại mật khẩu SSH ngẫu nhiên" → xác nhận → hộp thoại mật khẩu chỉ hiện một lần + Sao chép.
+
+## Trang 4 — Quản trị (`#/quan-tri`) — REQ-UI-09
+
+| Tab | Nội dung |
+|---|---|
+| **Duyệt tài khoản** | Bảng tài khoản `pending`: Email, Họ tên, Thời gian đăng nhập; **Duyệt** / **Từ chối** |
+| **Quản lý người dùng** | Bảng `active`, `locked`, `rejected`, `deleted` (số đang dùng /30); Khóa / Mở khóa / Xóa / **Cấp lại mật khẩu SSH** / Duyệt lại (rejected) |
+| **Nhật ký** | Bảng audit; lọc theo người dùng, loại sự kiện (đặt/hủy ca, tài khoản, OOM, lỗi khởi chạy…), từ ngày – đến ngày |
+
+## Popup sắp hết ca — REQ-UI-15
+
+Khi ca của mình đang chạy còn ≤ 15 phút: thẻ nổi góc dưới phải "⚠ SẮP HẾT CA (Còn mm:ss)", "Ca của bạn sẽ kết thúc lúc 17:00", "Hãy lưu checkpoint (`--resume`) ngay", nút **Đã hiểu**. Đếm ngược mỗi giây. Đã bấm "Đã hiểu" thì không hiện lại cho ca đó (nhớ trong `localStorage`, lỗi truy cập thì bỏ qua). Dashboard kiểm tra ca đang chạy mỗi 30 giây ở mọi trang.
 
 ## Thông báo lỗi — REQ-UI-03
 
 | `code` | Thông báo |
 |---|---|
 | `SLOT_FULL` | Khung giờ này đã đủ 2 phiên. Hãy chọn giờ khác. |
-| `GPU_BUSY` | Khung giờ này đã có người dùng GPU. Bạn có thể đặt phiên không GPU hoặc chọn giờ khác. |
+| `GPU_BUSY` | Khung giờ này đã có người dùng GPU. Bạn có thể tắt GPU hoặc chọn giờ khác. |
 | `GPU_QUOTA_EXCEEDED` | Bạn đã dùng hết 10 giờ GPU tuần này. Bạn vẫn đặt được khung GPU còn trống trong 24 giờ tới. |
 | `USER_OVERLAP` | Bạn đã có một ca khác trong khoảng thời gian này. |
-| `INVALID_TIME` | Theo `reason`: giờ kết thúc phải sau giờ bắt đầu / giờ này đã qua, hãy chọn từ giờ tới / ca dài tối đa 8 giờ / chỉ đặt theo giờ tròn / chỉ đặt trước tối đa 7 ngày / lỗi định dạng thời gian (`MISSING_TIMEZONE` — lỗi của client). |
+| `INVALID_TIME` | Theo `reason`: giờ kết thúc phải sau giờ bắt đầu / giờ này đã qua / ca dài tối đa 8 giờ / chỉ đặt theo giờ tròn / chỉ đặt trước tối đa 7 ngày. |
 | `INVALID_STATE` | Thao tác không còn hợp lệ với trạng thái hiện tại của ca. Hãy tải lại trang. |
 
-## Múi giờ — REQ-UI-10
+## Chạy thử trên máy local
 
-- Mọi hiển thị dùng `Intl.DateTimeFormat(…, { timeZone: 'Asia/Ho_Chi_Minh' })`, không dùng múi giờ trình duyệt.
-- Form không dùng `<input type="datetime-local">`. Client ghép chuỗi `YYYY-MM-DDTHH:00:00+07:00`; "24:00" đổi thành `00:00` hôm sau.
-- Múi giờ trình duyệt khác giờ Việt Nam → dòng nhắc "Mọi giờ trên trang là giờ Việt Nam (GMT+7)".
-- "Hôm nay" trên lịch là hôm nay theo giờ Việt Nam.
-- Giờ đã bắt đầu thì không chọn được (Q9); backend vẫn kiểm tra `IN_PAST`.
+`npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev (CSDL riêng `vmu_dev`, đồng hồ thật, Google/hệ thống/Docker giả; mỗi lần khởi động lại dữ liệu mẫu được tạo lại; trang đăng nhập có nút "Chạy thử: chọn tài khoản mẫu"). Production: Nginx phục vụ `frontend/src/`.

@@ -44,9 +44,11 @@ async function bookingMetrics(ctx, user, id) {
   if (b.status !== 'running' || !ctx.docker) throw err.invalidState('Ca không có phiên đang chạy');
   const s = await ctx.docker.stats(`vmu-bk-${b.id}`);
   if (!s) throw err.invalidState('Container không chạy');
+  const info = await ctx.docker.inspect(`vmu-bk-${b.id}`);
   const gpu = b.use_gpu ? await ctx.docker.gpuStats() : null;
   return {
     cpu_percent: s.cpuPercent,
+    cpus: info?.cpus ?? null,
     mem_bytes: s.memBytes,
     mem_limit_bytes: s.memLimitBytes,
     gpu: gpu && { util_percent: gpu.utilPercent, mem_used_bytes: gpu.memUsedBytes, mem_total_bytes: gpu.memTotalBytes },
@@ -72,10 +74,23 @@ async function purgeOldLogs(ctx) {
   return removed;
 }
 
-// REQ-MN-03
+// REQ-MN-03: lọc theo user (người thực hiện hoặc chủ đối tượng), action (đúng tên hoặc tiền tố kết thúc bằng "."), from/to
 async function listAudit(ctx, query) {
   const params = [];
   const where = [];
+  if (query.user) {
+    params.push(String(query.user));
+    const p = `$${params.length}`;
+    where.push(`(u.username = ${p}
+      OR (a.target LIKE 'booking:%' AND EXISTS (SELECT 1 FROM bookings bk JOIN users ow ON ow.id = bk.user_id
+            WHERE a.target = 'booking:' || bk.id AND ow.username = ${p}))
+      OR (a.target LIKE 'user:%' AND EXISTS (SELECT 1 FROM users tu WHERE a.target = 'user:' || tu.id AND tu.username = ${p})))`);
+  }
+  if (query.action) {
+    const action = String(query.action);
+    params.push(action.endsWith('.') ? `${action.replace(/[%_]/g, '')}%` : action);
+    where.push(`a.action ${action.endsWith('.') ? 'LIKE' : '='} $${params.length}`);
+  }
   const from = query.from ? parseDateOrInstant(query.from, ctx.cfg.timezone) : null;
   const to = query.to ? parseDateOrInstant(query.to, ctx.cfg.timezone) : null;
   if ((query.from && from === null) || (query.to && to === null)) throw err.validation('from/to không hợp lệ');

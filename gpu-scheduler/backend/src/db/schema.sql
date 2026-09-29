@@ -1,5 +1,5 @@
 -- docs/10-design/database.md
-CREATE TYPE user_status    AS ENUM ('pending', 'active', 'locked', 'deleted');
+CREATE TYPE user_status    AS ENUM ('pending', 'active', 'locked', 'deleted', 'rejected');
 CREATE TYPE user_role      AS ENUM ('user', 'admin');
 CREATE TYPE booking_status AS ENUM ('scheduled', 'starting', 'running', 'exited',
                                     'stopping', 'completed', 'cancelled', 'failed');
@@ -37,6 +37,7 @@ CREATE TABLE sessions (
 CREATE TABLE ssh_keys (
   id          bigserial PRIMARY KEY,
   user_id     bigint NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name        text NOT NULL,
   public_key  text NOT NULL,
   fingerprint text NOT NULL,
   created_at  timestamptz NOT NULL DEFAULT now(),

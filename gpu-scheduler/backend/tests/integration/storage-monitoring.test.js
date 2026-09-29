@@ -158,6 +158,60 @@ describe('M5, M6 — Lưu trữ, giám sát & log', () => {
     assert.equal((await t.req('GET', '/api/admin/audit', A.cookie)).statusCode, 403);
   });
 
+  test('MN-T09 metrics có cpus (số lõi được cấp), RAM, GPU util, VRAM dùng/tổng', async () => {
+    const b = await book();
+    t.clock.set(vn('2026-10-05T09:00:10'));
+    await tick();
+    const m = (await t.req('GET', `/api/bookings/${b.id}/metrics`, A.cookie)).json();
+    assert.equal(m.cpus, 15);
+    assert.equal(m.mem_limit_bytes, 28 * GiB);
+    assert.ok(m.mem_bytes > 0);
+    assert.deepEqual(Object.keys(m.gpu).sort(), ['mem_total_bytes', 'mem_used_bytes', 'util_percent']);
+  });
+
+  test('MN-T10 OOM và lỗi khởi chạy ghi audit (người thực hiện system); /admin/audit lọc theo user, action, from/to', async () => {
+    // Ca 1 của A: khởi chạy lỗi
+    docker.failOn('run');
+    const b1 = await book('2026-10-05T09:00:00', '2026-10-05T10:00:00', false);
+    t.clock.set(vn('2026-10-05T09:00:10'));
+    await tick();
+    docker.clearFailures();
+    // Ca 2 của A: chạy rồi bị OOM
+    const b2 = await book('2026-10-05T11:00:00', '2026-10-05T13:00:00', true);
+    t.clock.set(vn('2026-10-05T11:00:10'));
+    await tick();
+    docker.exit(`vmu-bk-${b2.id}`, { oom: true });
+    t.clock.set(vn('2026-10-05T11:05:00'));
+    await tick();
+
+    const audit = async (qs) => {
+      const res = await t.req('GET', `/api/admin/audit${qs}`, admin);
+      assert.equal(res.statusCode, 200, res.body);
+      return res.json();
+    };
+    const all = await audit('');
+    const failed = all.find((r) => r.action === 'booking.start_failed');
+    const oom = all.find((r) => r.action === 'booking.oom');
+    assert.ok(failed && oom, JSON.stringify(all.map((r) => r.action)));
+    assert.equal(failed.actor, 'system');
+    assert.equal(failed.target, `booking:${b1.id}`);
+    assert.equal(oom.actor, 'system');
+    assert.equal(oom.target, `booking:${b2.id}`);
+
+    // Lọc theo user: gồm thao tác của A và sự kiện hệ thống trên ca của A
+    const byA = await audit(`?user=${A.username}`);
+    assert.ok(byA.some((r) => r.action === 'booking.oom'));
+    assert.ok(byA.some((r) => r.action === 'booking.create'));
+    assert.ok(byA.every((r) => r.actor === A.username || r.target.startsWith('booking:') || r.target === `user:${A.id}`));
+    assert.ok(!byA.some((r) => r.action === 'user.approve' && r.target !== `user:${A.id}`));
+    // Lọc theo action: đúng tên và tiền tố
+    assert.deepEqual((await audit('?action=booking.oom')).map((r) => r.action), ['booking.oom']);
+    const prefix = await audit('?action=booking.');
+    assert.ok(prefix.length >= 4 && prefix.every((r) => r.action.startsWith('booking.')));
+    // Lọc theo thời gian: tương lai → rỗng
+    assert.deepEqual(await audit('?from=2030-01-01'), []);
+  });
+
   test('[hỗ trợ MN-T01] GET /bookings/:id/metrics của phiên GPU đang chạy có CPU, RAM, GPU, sampled_at', async () => {
     const b = await book();
     t.clock.set(vn('2026-10-05T09:00:10'));

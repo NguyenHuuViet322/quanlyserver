@@ -63,14 +63,14 @@ async function main() {
   });
 
   app.post('/__test/booking', async (req) => {
-    const { email, start, end, use_gpu = false, status = 'scheduled' } = req.body;
+    const { email, start, end, use_gpu = false, status = 'scheduled', exit_reason = null } = req.body;
     const u = await userByEmail(email);
     const actual = status === 'completed' || status === 'running' ? start : null;
     const { rows } = await db.query(
-      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at, actual_end_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [u.id, start, end, use_gpu, status, actual, status === 'completed' ? end : null]);
-    if (status === 'running') docker.addContainer(`vmu-bk-${rows[0].id}`, rows[0].id);
+      `INSERT INTO bookings (user_id, start_at, end_at, use_gpu, status, actual_start_at, actual_end_at, exit_reason)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
+      [u.id, start, end, use_gpu, status, actual, status === 'completed' ? end : null, exit_reason]);
+    if (['running', 'exited'].includes(status)) docker.addContainer(`vmu-bk-${rows[0].id}`, rows[0].id, { running: status === 'running', cpus: 15 });
     return { id: rows[0].id };
   });
 

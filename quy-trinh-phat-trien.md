@@ -200,15 +200,15 @@ Checklist gốc nằm ở [`gpu-scheduler/docs/20-test-cases/`](gpu-scheduler/do
 
 | Module | File | Số test case |
 |---|---|---|
-| M1 Người dùng & xác thực | [users.md](gpu-scheduler/docs/20-test-cases/users.md) | 29 |
-| M2 Đặt lịch (cốt lõi) | [booking.md](gpu-scheduler/docs/20-test-cases/booking.md) | 40 |
+| M1 Người dùng & xác thực | [users.md](gpu-scheduler/docs/20-test-cases/users.md) | 32 |
+| M2 Đặt lịch (cốt lõi) | [booking.md](gpu-scheduler/docs/20-test-cases/booking.md) | 42 |
 | M3 Scheduler | [scheduler.md](gpu-scheduler/docs/20-test-cases/scheduler.md) | 15 |
 | M4 Container & truy cập SSH | [container.md](gpu-scheduler/docs/20-test-cases/container.md) | 22 |
 | M5 Lưu trữ | [storage.md](gpu-scheduler/docs/20-test-cases/storage.md) | 7 |
-| M6 Giám sát & log | [monitoring.md](gpu-scheduler/docs/20-test-cases/monitoring.md) | 8 |
-| M7 Dashboard | [dashboard.md](gpu-scheduler/docs/20-test-cases/dashboard.md) | 12 |
+| M6 Giám sát & log | [monitoring.md](gpu-scheduler/docs/20-test-cases/monitoring.md) | 10 |
+| M7 Dashboard | [dashboard.md](gpu-scheduler/docs/20-test-cases/dashboard.md) | 19 |
 | M8 Triển khai | [deployment.md](gpu-scheduler/docs/20-test-cases/deployment.md) | 6 |
-| **Tổng** | | **139** |
+| **Tổng** | | **153** |
 
 So với bản checklist trước (95 mục):
 - Mỗi test case ghi rõ REQ, loại (`happy`/`negative`/`edge`) và tầng test (`unit`/`integration`/`system`/`e2e`/`manual`).

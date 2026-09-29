@@ -21,6 +21,7 @@ function createFakeDocker({ runDelayMs = 0 } = {}) {
     containers,
     calls,
     failOn: (op) => failures.add(op),
+    clearFailures: () => failures.clear(),
     runsOf: (name) => calls.filter((c) => c[0] === 'run' && nameOf(c[1]) === name),
 
     // Giả lập: container tự thoát (oom = bị OOM killer)
@@ -31,8 +32,8 @@ function createFakeDocker({ runDelayMs = 0 } = {}) {
       c.oomKilled = oom;
     },
     // Giả lập container tồn tại mà Scheduler không biết (vd sau khi Scheduler crash)
-    addContainer(name, bookingId, { running = true } = {}) {
-      containers.set(name, { args: [], running, exitCode: null, oomKilled: false, logs: '', labels: { 'vmu.booking': String(bookingId) } });
+    addContainer(name, bookingId, { running = true, cpus = null } = {}) {
+      containers.set(name, { args: cpus ? ['--cpus', String(cpus)] : [], running, exitCode: null, oomKilled: false, logs: '', labels: { 'vmu.booking': String(bookingId) } });
     },
 
     async run(args) {
@@ -47,7 +48,9 @@ function createFakeDocker({ runDelayMs = 0 } = {}) {
     async inspect(name) {
       calls.push(['inspect', name]);
       const c = containers.get(name);
-      return c ? { running: c.running, exitCode: c.exitCode, oomKilled: c.oomKilled } : null;
+      if (!c) return null;
+      const cpus = c.args.includes('--cpus') ? Number(c.args[c.args.indexOf('--cpus') + 1]) : null;
+      return { running: c.running, exitCode: c.exitCode, oomKilled: c.oomKilled, cpus };
     },
     async stop(name, timeoutSec) {
       calls.push(['stop', name, timeoutSec]);

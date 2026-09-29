@@ -3,7 +3,7 @@
 Thời gian lưu dạng `timestamptz`; server PostgreSQL đặt `timezone = 'UTC'` (REQ-DP-06). Khoảng thời gian của ca là nửa mở `[start_at, end_at)`. Quy tắc múi giờ: xem [time.md](time.md).
 
 ```sql
-CREATE TYPE user_status    AS ENUM ('pending', 'active', 'locked', 'deleted');
+CREATE TYPE user_status    AS ENUM ('pending', 'active', 'locked', 'deleted', 'rejected'); -- rejected: REQ-US-17
 CREATE TYPE user_role      AS ENUM ('user', 'admin');
 CREATE TYPE booking_status AS ENUM ('scheduled', 'starting', 'running', 'exited',
                                     'stopping', 'completed', 'cancelled', 'failed');
@@ -41,6 +41,7 @@ CREATE TABLE sessions (
 CREATE TABLE ssh_keys (
   id          bigserial PRIMARY KEY,
   user_id     bigint NOT NULL REFERENCES users(id),
+  name        text NOT NULL,                          -- tên gợi nhớ, REQ-US-13
   public_key  text NOT NULL,
   fingerprint text NOT NULL,
   created_at  timestamptz NOT NULL DEFAULT now(),

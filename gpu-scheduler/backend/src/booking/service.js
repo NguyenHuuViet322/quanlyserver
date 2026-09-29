@@ -4,7 +4,7 @@ const { ApiError, err } = require('../errors');
 const { toVnIso, weekStartOf, addWeek, parseDateOrInstant } = require('../time');
 const { validateBookingTimes } = require('./rules');
 const { findConflict, ACTIVE } = require('./conflict');
-const { checkGpuQuota } = require('./quota');
+const { checkGpuQuota, usedInWeek } = require('./quota');
 
 const BOOKING_LOCK = 2001; // khóa advisory tuần tự hóa mọi thay đổi lịch — REQ-BK-06
 const ACTIVE_LIST = [...ACTIVE];
@@ -61,6 +61,44 @@ async function userGpuBookings(q, userId, from, to) {
     [userId, [...ACTIVE_LIST, 'completed'], new Date(from), new Date(to)],
   );
   return rows.map(toRule);
+}
+
+// REQ-BK-13: kiểm tra thử — cùng quy tắc với createBooking nhưng không khóa, không ghi
+async function checkBooking(ctx, user, body) {
+  const { cfg } = ctx;
+  const now = ctx.clock.now().getTime();
+  const pending = ['USER_OVERLAP', 'CAPACITY', 'GPU_QUOTA'].map((rule) => ({ rule, ok: null }));
+  let start;
+  let end;
+  try {
+    ({ start, end } = validateBookingTimes(body.start, body.end, now, cfg));
+  } catch (e) {
+    if (e.code !== 'INVALID_TIME') throw e; // sai định dạng → 400 như đặt ca
+    return { ok: false, checks: [{ rule: 'TIME', ok: false, code: e.code, reason: e.details.reason }, ...pending] };
+  }
+  const { rows } = await ctx.db.query(
+    'SELECT * FROM bookings WHERE status = ANY($1::booking_status[]) AND start_at < $3 AND end_at > $2',
+    [ACTIVE_LIST, new Date(start), new Date(end)],
+  );
+  const existing = rows.map(toRule);
+  const candidate = { userId: user.id, start, end, useGpu: body.use_gpu };
+  const overlap = existing.some((b) => b.userId === user.id);
+  // Sức chứa tính cả ca của chính mình; dùng userId giả để findConflict không dừng ở USER_OVERLAP
+  const capacity = findConflict(existing, { ...candidate, userId: -1 }, cfg);
+  let quota = null;
+  if (candidate.useGpu) {
+    const from = weekStartOf(start, cfg.timezone);
+    const to = addWeek(weekStartOf(end - 1, cfg.timezone), cfg.timezone);
+    quota = checkGpuQuota(await userGpuBookings(ctx.db, user.id, from, to), candidate, now, cfg);
+  }
+  const result = (rule, code) => (code ? { rule, ok: false, code } : { rule, ok: true });
+  const checks = [
+    { rule: 'TIME', ok: true },
+    result('USER_OVERLAP', overlap ? 'USER_OVERLAP' : null),
+    result('CAPACITY', capacity),
+    result('GPU_QUOTA', quota),
+  ];
+  return { ok: checks.every((c) => c.ok), checks };
 }
 
 async function createBooking(ctx, user, body) {
@@ -163,15 +201,20 @@ async function listBookings(ctx, user, query) {
 }
 
 // Lịch — REQ-UI-02: ca hiệu lực của mọi người trong khoảng [from, to), kèm ai đang dùng
+const CALENDAR_STATUSES = [...ACTIVE_LIST, 'completed'];
+const HISTORY_DAYS = 28;
+
 async function calendar(ctx, user, query) {
   const tz = ctx.cfg.timezone;
   const from = parseDateOrInstant(query.from, tz);
   const to = parseDateOrInstant(query.to, tz);
   if (from === null || to === null || to <= from) throw err.validation('Cần from < to (ngày YYYY-MM-DD hoặc thời điểm có múi giờ)');
   if (to - from > ctx.cfg.bookingHorizonMs + 24 * HOUR) throw err.validation('Khoảng thời gian tối đa 8 ngày');
+  const todayStart = parseDateOrInstant(toVnIso(ctx.clock.now().getTime()).slice(0, 10), tz);
+  if (from < todayStart - HISTORY_DAYS * 24 * HOUR) throw err.validation(`Chỉ xem lại tối đa ${HISTORY_DAYS} ngày trước`);
   const { rows } = await ctx.db.query(
     `${SELECT_BOOKING} WHERE b.status = ANY($1::booking_status[]) AND b.start_at < $3 AND b.end_at > $2 ORDER BY b.start_at, b.id`,
-    [ACTIVE_LIST, new Date(from), new Date(to)],
+    [CALENDAR_STATUSES, new Date(from), new Date(to)],
   );
   return rows.map((r) => ({
     id: r.id,
@@ -179,12 +222,29 @@ async function calendar(ctx, user, query) {
     end: toVnIso(ms(r.end_at)),
     username: r.username,
     use_gpu: r.use_gpu,
+    status: r.status,
     mine: r.user_id === user.id,
   }));
 }
 
+// REQ-UI-12: giờ GPU tuần hiện tại (Thứ Hai 00:00 giờ VN)
+async function gpuQuotaOf(ctx, user) {
+  const tz = ctx.cfg.timezone;
+  const week = weekStartOf(ctx.clock.now().getTime(), tz);
+  const used = usedInWeek(await userGpuBookings(ctx.db, user.id, week, addWeek(week, tz)), week, tz);
+  const round = (x) => Math.round((x / HOUR) * 100) / 100;
+  return {
+    week_start: toVnIso(week),
+    limit_hours: round(ctx.cfg.gpuWeeklyQuotaMs),
+    used_hours: round(used),
+    remaining_hours: round(Math.max(0, ctx.cfg.gpuWeeklyQuotaMs - used)),
+  };
+}
+
 module.exports = {
   createBooking,
+  checkBooking,
+  gpuQuotaOf,
   cancelBooking,
   endBooking,
   restartBooking,

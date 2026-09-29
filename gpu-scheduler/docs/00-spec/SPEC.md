@@ -99,7 +99,7 @@ Mật khẩu ban đầu và mật khẩu cấp lại MUST hết hạn ngay (`cha
 User `active` MUST cấp lại được mật khẩu qua Dashboard. Mật khẩu cũ MUST hết hiệu lực ngay; mật khẩu mới tuân theo REQ-US-10, REQ-US-11.
 
 ### REQ-US-13 — SSH key
-User SHOULD thêm/xóa SSH public key qua Dashboard; key MUST được ghi vào `~/.ssh/authorized_keys` của user. Key sai định dạng → `400 INVALID_SSH_KEY`.
+User SHOULD thêm/xóa SSH public key qua Dashboard; key MUST được ghi vào `~/.ssh/authorized_keys` của user. Key sai định dạng → `400 INVALID_SSH_KEY`. Mỗi key có **tên gợi nhớ** (`name`, ≤ 60 ký tự; bỏ trống thì lấy phần chú thích cuối key, không có thì lấy loại key); dài hơn → `400 VALIDATION_ERROR`.
 
 ### REQ-US-14 — Phân quyền
 Có hai vai trò `user` và `admin`. API admin MUST trả `403 FORBIDDEN` cho vai trò `user`.
@@ -109,6 +109,12 @@ Admin khóa user thì MUST: chặn đăng nhập Dashboard (`403 ACCOUNT_LOCKED`
 
 ### REQ-US-16 — Xóa tài khoản
 Xóa user MUST khóa tài khoản như REQ-US-15; UID MUST NOT được cấp lại cho user khác; dữ liệu `/data/users/<username>` MUST được giữ `CFG.DELETED_USER_RETENTION` rồi mới xóa hẳn.
+
+### REQ-US-17 — Từ chối tài khoản
+Admin MUST từ chối được tài khoản `pending` → `rejected`, không tạo gì trên hệ thống. Tài khoản `rejected` đăng nhập → `403 ACCOUNT_REJECTED`. Admin MAY duyệt lại tài khoản `rejected` như `pending`. Từ chối tài khoản không ở `pending` → `409 INVALID_STATE`.
+
+### REQ-US-18 — Admin cấp lại mật khẩu SSH
+Admin MUST cấp lại được mật khẩu SSH cho user `active` hoặc `locked`: mật khẩu mới theo REQ-US-10, REQ-US-11, mật khẩu cũ hết hiệu lực ngay. Admin MUST NOT thấy mật khẩu mới; user thấy nó ở lần mở Dashboard kế tiếp (màn hình mật khẩu lần đầu). User khác trạng thái → `409 INVALID_STATE`.
 
 ## 4. M2 — Đặt lịch (`BK`)
 
@@ -159,6 +165,12 @@ Request MUST có `start`, `end` và `use_gpu` (boolean, không mặc định). T
 - Chấp nhận mọi offset; hai chuỗi cùng một thời điểm (`…T02:00:00Z` và `…T09:00:00+07:00`) MUST cho kết quả như nhau.
 - Mọi thời điểm API trả về MUST ở dạng giờ Việt Nam có offset (`…T09:00:00+07:00`).
 - CSDL MUST lưu thời điểm dạng `timestamptz` (UTC).
+
+### REQ-BK-13 — Kiểm tra thử đặt ca
+`POST /bookings/check` (cùng body với đặt ca) MUST trả `200` với kết quả từng quy tắc — `TIME` (REQ-BK-01), `USER_OVERLAP` (REQ-BK-04), `CAPACITY` (REQ-BK-02, REQ-BK-03), `GPU_QUOTA` (REQ-BK-05) — mỗi quy tắc `ok` hoặc mã lỗi tương ứng, **không tạo ca**. Tại cùng một thời điểm, kết quả MUST khớp với việc `POST /bookings` thành công hay trả lỗi gì.
+
+### REQ-BK-14 — Lịch (dữ liệu)
+`GET /calendar` MUST trả các ca giao với khoảng `[from, to)` (≤ 8 ngày) kèm `username`, `use_gpu`, `status`, `mine`. Trả ca hiệu lực và ca `completed` (để xem lại), không trả ca `cancelled`, `failed`. `from` sớm hơn hôm nay quá 28 ngày → `400 VALIDATION_ERROR`.
 
 ### REQ-BK-12 — Tính theo giờ Việt Nam, không phụ thuộc môi trường
 - Giờ tròn, ranh giới ngày và tuần (REQ-BK-01, REQ-BK-05) MUST tính theo `CFG.TIMEZONE` bằng cơ sở dữ liệu múi giờ IANA, không cộng cứng 7 giờ.
@@ -258,28 +270,34 @@ Dung lượng đã dùng hiển thị trên Dashboard MUST lệch ≤ 1% so vớ
 ## 8. M6 — Giám sát & log (`MN`)
 
 ### REQ-MN-01 — Số liệu phiên
-Dashboard MUST hiện CPU, RAM, GPU (nếu có) của phiên đang chạy, cập nhật ≤ 60 giây.
+Dashboard MUST hiện số liệu của phiên đang chạy, cập nhật mỗi 5 giây khi đang xem: CPU (% và số lõi được cấp), RAM đang dùng / giới hạn, GPU (% sử dụng, VRAM đang dùng / tổng) nếu ca có GPU.
 
 ### REQ-MN-02 — Log container
 Log container MUST xem được sau khi ca kết thúc, trong `LOG_RETENTION`.
 
 ### REQ-MN-03 — Audit log
-Mọi thao tác đặt, hủy, kết thúc sớm, khởi động lại, duyệt, khóa, xóa, cấp lại mật khẩu MUST được ghi audit log: ai, lúc nào, thao tác, đối tượng.
+Mọi thao tác đặt, hủy, kết thúc sớm, khởi động lại, duyệt, từ chối, khóa, xóa, cấp lại mật khẩu MUST được ghi audit log: ai, lúc nào, thao tác, đối tượng. Sự kiện của hệ thống — container bị OOM, lỗi khởi chạy — MUST được ghi với người thực hiện là hệ thống. API admin MUST lọc được theo username (người thực hiện hoặc chủ ca), loại thao tác, khoảng thời gian.
 
 ### REQ-MN-04 — Lý do dừng
 Container bị OOM MUST được hiển thị rõ lý do `OOM` trên Dashboard.
 
 ## 9. M7 — Dashboard (`UI`) và M8 — Triển khai (`DP`)
 
-- **REQ-UI-01** Form đặt ca MUST bắt buộc chọn "Dùng GPU: Có/Không", không có giá trị mặc định.
-- **REQ-UI-02** Lịch MUST hiển thị cho mỗi khung giờ: ai đang dùng (username), ca nào dùng GPU, và khung đã đủ 2 phiên.
+- **REQ-UI-01** Hộp thoại đặt ca có công tắc "Sử dụng GPU RTX 5090", **mặc định tắt** (= không dùng GPU); tóm tắt MUST ghi rõ có hay không dùng GPU (Q15).
+- **REQ-UI-02** Lịch 8 ngày (dữ liệu theo REQ-BK-14): mỗi ca là khối ghi username; ca của mình màu chủ đạo; ca GPU của người khác nền xám đậm kèm chip `GPU`; ca không GPU của người khác nền xám nhạt; giờ đã qua kẻ sọc mờ; cột hôm nay nền nhạt; vạch đỏ giờ hiện tại. Rê chuột vào khối MUST hiện tooltip `<username> · Trạng thái: <…> | Loại: Có GPU / Không GPU`. Bộ chọn tuần: xem lại tối đa 4 tuần trước (chỉ xem), không xem quá 7 ngày tới. Bấm khoảng trống (tương lai, còn chỗ) mở hộp thoại đặt ca điền sẵn ngày giờ.
 - **REQ-UI-03** Mỗi mã lỗi `409` và `400` MUST có thông báo tiếng Việt dễ hiểu.
-- **REQ-UI-05** Giao diện gọn: user thấy username và dung lượng đã dùng / quota. Dashboard MUST NOT hiển thị giờ GPU còn lại hay dải cổng (hạn mức GPU vẫn được áp dụng, vượt thì báo lỗi theo REQ-UI-03).
-- **REQ-UI-06** User MUST hủy ca và kết thúc sớm được từ giao diện.
+- **REQ-UI-05** Menu tài khoản (góc phải thanh trên) MUST hiện họ tên, email, thanh dung lượng nhỏ (`đã dùng / quota GiB`), "Đổi mật khẩu SSH", "Đăng xuất". Dashboard MUST NOT hiện dải cổng.
+- **REQ-UI-06** User MUST hủy ca và kết thúc sớm được từ giao diện. Bảng ca (trang Ca của tôi) có cột Mã ca, Thời gian (kèm "Hôm nay", "Hôm qua" hoặc ngày), GPU, Trạng thái, Thao tác (Hủy ca / Xem log / Xem lý do).
 - **REQ-UI-07** Có nút "Đăng nhập bằng Google"; tài khoản `pending` thấy màn hình chờ duyệt.
 - **REQ-UI-08** Màn hình mật khẩu lần đầu có nút sao chép, cảnh báo lưu lại, nút "Tôi đã lưu".
-- **REQ-UI-09** Admin có trang duyệt, khóa, xóa tài khoản.
-- **REQ-UI-11** Trang Tài khoản & SSH MUST có hướng dẫn kết nối: lệnh `ssh`, đoạn `~/.ssh/config` cho VS Code (REQ-CT-11) có nút sao chép; user chưa có SSH key thì MUST được nhắc thêm key.
+- **REQ-UI-09** Trang Quản trị có 3 tab: **Duyệt tài khoản** (email, họ tên, thời gian đăng nhập; Duyệt / Từ chối), **Quản lý người dùng** (Khóa, Mở khóa, Xóa, Cấp lại mật khẩu SSH), **Nhật ký** (lọc theo người dùng, loại sự kiện, khoảng thời gian).
+- **REQ-UI-11** Trang Ca của tôi MUST có hướng dẫn kết nối: lệnh `ssh` và đoạn `~/.ssh/config` cho VS Code (REQ-CT-11), có nút sao chép — là tab "Hướng dẫn kết nối" trong khối ca đang chạy, và vẫn xem được khi không có ca; user chưa có SSH key thì MUST được nhắc thêm key.
+- **REQ-UI-12** Thanh công cụ Lịch MUST hiện "Hạn mức GPU: <đã dùng>/<hạn mức> giờ" của tuần hiện tại; chuyển màu cảnh báo khi đã dùng > 8 giờ (Q16).
+- **REQ-UI-13** Khi có ca `starting`, `running` hoặc `exited`: trang Ca của tôi MUST hiện khối ca đang hoạt động gồm mã ca, giờ kết thúc, thời gian còn lại, tài nguyên (GPU nếu có, RAM đang dùng / giới hạn, số lõi CPU), nút Mở nhật ký, Kết thúc sớm, Khởi động lại (khi `exited` còn trong giờ) và 3 tab: Giám sát tài nguyên (biểu đồ GPU %, VRAM, CPU, RAM theo thời gian, cập nhật mỗi 5 giây), Hướng dẫn kết nối, Nhật ký container.
+- **REQ-UI-14** Hộp thoại đặt ca MUST kiểm tra quy tắc ngay khi thay đổi lựa chọn (qua REQ-BK-13) và hiện từng dòng: khung giờ hợp lệ, không trùng ca của mình, còn chỗ (2 phiên / 1 GPU), đủ hạn mức GPU — mỗi dòng đạt hoặc không đạt kèm lý do tiếng Việt; nút Xác nhận chỉ bấm được khi tất cả đạt.
+- **REQ-UI-15** Ca của mình đang chạy còn ≤ `END_WARNING`: popup góc dưới phải MUST hiện đếm ngược `mm:ss`, giờ kết thúc, nhắc lưu checkpoint, nút "Đã hiểu" (đóng và không hiện lại cho ca đó).
+- **REQ-UI-16** Thẻ dung lượng (trang Tài khoản & Key): thanh màu chủ đạo khi dưới soft quota; màu cảnh báo từ soft đến dưới hard quota (kèm hạn dọn dẹp); màu nguy hiểm khi chạm hard quota (không ghi được); luôn có ghi chú server không sao lưu, tải file về bằng SFTP/SCP.
+- **REQ-UI-17** Nhãn trạng thái ca luôn có chữ và màu: `scheduled` "Sắp tới" (xanh nhạt), `running` "Đang chạy" (xanh lá), `starting`/`stopping` (vàng), `failed`, `cancelled`, OOM (đỏ), `completed` "Hoàn thành" (trung tính).
 - **REQ-UI-10** Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kèm nhãn "(GMT+7)", **bất kể múi giờ của trình duyệt**. Form đặt ca MUST chỉ cho chọn ngày + giờ tròn (00–23 giờ, giờ kết thúc cho phép "24:00" = 00:00 hôm sau), gửi lên API chuỗi có offset. Ca qua nửa đêm MUST hiển thị rõ ngày kết thúc (vd "22:00 – 02:00 (+1 ngày)").
 - **REQ-DP-01** Backend và Scheduler MUST chạy dưới systemd, tự khởi động lại khi crash và khi reboot.
 - **REQ-DP-02** Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hướng sang HTTPS.
@@ -308,6 +326,8 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 | Q12 | Truy cập cổng (Jupyter, TensorBoard…) | ~~SSH tunnel theo dải cổng~~ → thay bằng Q14 | Thay thế 2026-09-29 |
 | Q13 | Người dùng cài phần mềm thế nào | Một image chung `BASE_IMAGE`, không có root; tự cài `pip`/`conda`/`~/.local` vào `/workspace` (giữ qua các ca); thứ cần root thì admin thêm vào image — REQ-CT-06 | ✅ Đã chốt 2026-09-29 |
 | Q14 | Dùng VS Code từ máy cá nhân | SSH thẳng vào container qua `vmu-connect`; bỏ dải cổng riêng; container không mở cổng, cách ly mạng — REQ-CT-05, REQ-CT-11 | ✅ Đã chốt 2026-09-29 |
+| Q15 | Chọn GPU khi đặt ca | Công tắc "Sử dụng GPU", mặc định tắt (theo `giao-dien.md`; thay cho "bắt buộc chọn" của kế hoạch gốc) — REQ-UI-01 | ✅ Đã chốt 2026-09-29 |
+| Q16 | Hiện hạn mức GPU trên Dashboard | Hiện lại "Hạn mức GPU: x/10 giờ" trên thanh công cụ Lịch (theo `giao-dien.md`) — REQ-UI-12 | ✅ Đã chốt 2026-09-29 |
 
 ## Gate Bước 1
 
@@ -316,9 +336,11 @@ Muốn đổi một quyết định đã chốt thì phải quay lại Bước 1
 - [x] Đã có người review và đồng ý toàn bộ spec (Q1–Q9 đã chốt 2026-09-28)
 - [x] Thay đổi 2026-09-28 (REQ-CT-05, REQ-CT-08..10, REQ-SC-02, Q10–Q12) đã được review
 - [x] Thay đổi 2026-09-29 (Q13, Q14; xem mục 11) — chủ dự án xác nhận hướng trong buổi trao đổi 2026-09-29
+- [x] Thay đổi 2026-09-29 theo [`docs/giao-dien.md`](../giao-dien.md) (Q15, Q16) — chủ dự án yêu cầu xây dựng lại theo tài liệu giao diện
 
 ## 11. Lịch sử thay đổi
 
 | Ngày | Thay đổi |
 |---|---|
 | 2026-09-29 | Bỏ REQ-US-09 (dải cổng), REQ-CT-10 (tunnel theo dải cổng), REQ-UI-04 (hiển thị giờ GPU còn lại); bỏ `PORT_BASE`, `PORT_RANGE_SIZE`, `ALLOWED_IMAGES`. Sửa REQ-BK-10, REQ-CT-05, REQ-CT-06, REQ-CT-08, REQ-UI-02, REQ-UI-05, REQ-DP-04, REQ-DP-06. Thêm REQ-CT-11, REQ-UI-11, `BASE_IMAGE`, `CONTAINER_NETWORK`. ID đã bỏ không dùng lại. |
+| 2026-09-29 | Theo `docs/giao-dien.md`: sửa REQ-US-13, REQ-MN-01, REQ-MN-03, REQ-UI-01, REQ-UI-02, REQ-UI-05, REQ-UI-06, REQ-UI-09, REQ-UI-11; thêm REQ-US-17, REQ-US-18, REQ-BK-13, REQ-BK-14, REQ-UI-12..17. |

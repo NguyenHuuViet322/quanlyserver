@@ -105,6 +105,46 @@ describe('M1 — Tài khoản, duyệt, phân quyền', () => {
     assert.equal(u.status, 'active');
   });
 
+  test('US-T32 từ chối pending → rejected, không tạo user Linux; đăng nhập → 403 ACCOUNT_REJECTED; từ chối active → 409; duyệt lại rejected → active', async () => {
+    const u = await pendingUser('tuchoi@vimaru.edu.vn');
+    const res = await t.req('POST', `/api/admin/users/${u.id}/reject`, admin);
+    assert.equal(res.statusCode, 200, res.body);
+    assert.equal(res.json().user.status, 'rejected');
+    assert.ok(!t.system.state.users.has('tuchoi'));
+    const login = await t.login('tuchoi@vimaru.edu.vn');
+    assert.equal(login.res.statusCode, 403);
+    assert.equal(code(login.res), 'ACCOUNT_REJECTED');
+    const active = await activeUser('dangdung@vimaru.edu.vn');
+    const bad = await t.req('POST', `/api/admin/users/${active.id}/reject`, admin);
+    assert.equal(bad.statusCode, 409);
+    assert.equal(code(bad), 'INVALID_STATE');
+    const again = await approve(u.id);
+    assert.equal(again.statusCode, 200, again.body);
+    assert.equal(again.json().user.status, 'active');
+    assert.ok(t.system.state.users.has('tuchoi'));
+  });
+
+  test('US-T33 admin cấp lại mật khẩu SSH: response không có mật khẩu; user thấy mật khẩu mới ở /me/password; pending → 409; user thường → 403', async () => {
+    const u = await activeUser('quenmk@vimaru.edu.vn');
+    const { cookie } = await t.login('quenmk@vimaru.edu.vn');
+    await t.req('POST', '/api/me/password/ack', cookie);
+    const before = t.system.state.users.get('quenmk').password;
+    const res = await t.req('POST', `/api/admin/users/${u.id}/password-reset`, admin);
+    assert.equal(res.statusCode, 200, res.body);
+    const after = t.system.state.users.get('quenmk');
+    assert.notEqual(after.password, before);
+    assert.equal(after.mustChange, true);
+    assert.ok(!res.body.includes(after.password), 'admin thấy mật khẩu');
+    const shown = await t.req('GET', '/api/me/password', cookie);
+    assert.equal(shown.statusCode, 200);
+    assert.equal(shown.json().password, after.password);
+    const p = await pendingUser('chua@vimaru.edu.vn');
+    const bad = await t.req('POST', `/api/admin/users/${p.id}/password-reset`, admin);
+    assert.equal(bad.statusCode, 409);
+    const forbidden = await t.req('POST', `/api/admin/users/${u.id}/password-reset`, cookie);
+    assert.equal(forbidden.statusCode, 403);
+  });
+
   test('US-T24 user thường gọi GET /admin/users → 403 FORBIDDEN', async () => {
     await activeUser('thuong@vimaru.edu.vn');
     const { cookie } = await t.login('thuong@vimaru.edu.vn');

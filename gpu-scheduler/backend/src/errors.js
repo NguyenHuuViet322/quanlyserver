@@ -18,6 +18,7 @@ const err = {
   domainNotAllowed: () => new ApiError(403, 'DOMAIN_NOT_ALLOWED', 'Chỉ chấp nhận tài khoản @vimaru.edu.vn'),
   accountPending: () => new ApiError(403, 'ACCOUNT_PENDING', 'Tài khoản đang chờ quản trị viên duyệt'),
   accountLocked: () => new ApiError(403, 'ACCOUNT_LOCKED', 'Tài khoản đã bị khóa'),
+  accountRejected: () => new ApiError(403, 'ACCOUNT_REJECTED', 'Tài khoản đã bị từ chối'),
   forbidden: () => new ApiError(403, 'FORBIDDEN', 'Không có quyền'),
   notFound: () => new ApiError(404, 'NOT_FOUND', 'Không tìm thấy'),
   userLimitReached: (max) => new ApiError(409, 'USER_LIMIT_REACHED', `Đã đủ ${max} tài khoản`),

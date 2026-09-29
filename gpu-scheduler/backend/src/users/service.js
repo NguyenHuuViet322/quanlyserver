@@ -5,6 +5,7 @@ const { err } = require('../errors');
 const { deriveUsername, usernameProblem } = require('./username');
 const { generatePassword, encryptPassword, decryptPassword } = require('./password');
 const { parseSshKey } = require('./ssh-key');
+const { toVnIso } = require('../time');
 
 const ADMIN_LOCK = 1001; // khóa advisory cho các thao tác cấp phát tài khoản
 
@@ -18,6 +19,7 @@ function publicUser(row, cfg) {
     role: row.role,
     status: row.status,
     uid: row.linux_uid,
+    created_at: row.created_at ? toVnIso(row.created_at) : null, // lần đăng nhập đầu (tab Duyệt tài khoản)
   };
 }
 
@@ -37,6 +39,7 @@ async function upsertFromGoogle(ctx, profile) {
   );
   const user = rows[0];
   if (user.status === 'locked' || user.status === 'deleted') throw err.accountLocked();
+  if (user.status === 'rejected') throw err.accountRejected();
   return user;
 }
 
@@ -95,7 +98,7 @@ async function approveUser(ctx, actorId, userId) {
     const { rows } = await q.query('SELECT * FROM users WHERE id = $1 FOR UPDATE', [userId]);
     const user = rows[0];
     if (!user) throw err.notFound();
-    if (user.status !== 'pending') throw err.invalidState('Chỉ duyệt được tài khoản đang chờ duyệt');
+    if (user.status !== 'pending' && user.status !== 'rejected') throw err.invalidState('Chỉ duyệt được tài khoản đang chờ duyệt hoặc đã từ chối');
     const problem = usernameProblem(user.username, cfg);
     if (problem) throw err.invalidUsername(problem);
 
@@ -136,6 +139,33 @@ async function approveUser(ctx, actorId, userId) {
       }
       throw e;
     }
+  });
+}
+
+// REQ-US-17: từ chối tài khoản chờ duyệt, không tạo gì trên hệ thống
+async function rejectUser(ctx, actorId, userId) {
+  return tx(ctx.db, async (q) => {
+    const user = (await q.query('SELECT * FROM users WHERE id = $1 FOR UPDATE', [userId])).rows[0];
+    if (!user) throw err.notFound();
+    if (user.status !== 'pending') throw err.invalidState('Chỉ từ chối được tài khoản đang chờ duyệt');
+    const updated = await q.query(`UPDATE users SET status = 'rejected' WHERE id = $1 RETURNING *`, [userId]);
+    await audit(q, actorId, 'user.reject', `user:${userId}`);
+    return publicUser(updated.rows[0], ctx.cfg);
+  });
+}
+
+// REQ-US-18: admin cấp lại mật khẩu; admin không thấy mật khẩu, user thấy ở lần mở Dashboard kế tiếp
+async function adminResetPassword(ctx, actorId, userId) {
+  return tx(ctx.db, async (q) => {
+    const user = (await q.query('SELECT * FROM users WHERE id = $1 FOR UPDATE', [userId])).rows[0];
+    if (!user) throw err.notFound();
+    if (user.status !== 'active' && user.status !== 'locked') throw err.invalidState('Chỉ cấp lại cho tài khoản đang hoạt động hoặc bị khóa');
+    const password = generatePassword(ctx.cfg.passwordLength);
+    await ctx.system.setPassword({ username: user.username, password, expireNow: true });
+    const updated = await q.query('UPDATE users SET pending_password_enc = $2 WHERE id = $1 RETURNING *',
+      [userId, encryptPassword(password, ctx.cfg.passwordEncKey)]);
+    await audit(q, actorId, 'user.password_reset', `user:${userId}`, { by_admin: true });
+    return publicUser(updated.rows[0], ctx.cfg);
   });
 }
 
@@ -229,7 +259,7 @@ async function resetPassword(ctx, user) {
 // --- SSH key — REQ-US-13 ---
 
 async function listSshKeys(ctx, user) {
-  const { rows } = await ctx.db.query('SELECT id, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = $1 ORDER BY id', [user.id]);
+  const { rows } = await ctx.db.query('SELECT id, name, public_key, fingerprint, created_at FROM ssh_keys WHERE user_id = $1 ORDER BY id', [user.id]);
   return rows;
 }
 
@@ -238,14 +268,17 @@ async function syncAuthorizedKeys(ctx, q, user) {
   await ctx.system.setAuthorizedKeys({ username: user.username, keys: rows.map((r) => r.public_key) });
 }
 
-async function addSshKey(ctx, user, input) {
+// REQ-US-13: tên gợi nhớ; bỏ trống → chú thích cuối key → loại key
+async function addSshKey(ctx, user, input, name) {
   const key = parseSshKey(input);
+  const [type, , ...comment] = key.publicKey.split(' ');
+  const label = (name || '').trim() || comment.join(' ') || type;
   return tx(ctx.db, async (q) => {
     const { rows } = await q.query(
-      `INSERT INTO ssh_keys (user_id, public_key, fingerprint) VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, fingerprint) DO UPDATE SET public_key = EXCLUDED.public_key
-       RETURNING id, public_key, fingerprint, created_at`,
-      [user.id, key.publicKey, key.fingerprint],
+      `INSERT INTO ssh_keys (user_id, name, public_key, fingerprint) VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, fingerprint) DO UPDATE SET public_key = EXCLUDED.public_key, name = EXCLUDED.name
+       RETURNING id, name, public_key, fingerprint, created_at`,
+      [user.id, label, key.publicKey, key.fingerprint],
     );
     await syncAuthorizedKeys(ctx, q, user);
     return rows[0];
@@ -268,6 +301,8 @@ module.exports = {
   deleteSession,
   listUsers,
   approveUser,
+  rejectUser,
+  adminResetPassword,
   lockUser,
   unlockUser,
   deleteUser,
