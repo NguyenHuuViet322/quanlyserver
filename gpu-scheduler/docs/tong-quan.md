@@ -219,11 +219,11 @@ Tính theo công thức WCAG 2.x; ngưỡng AA cho chữ thường là 4.5:1.
 | M1 Người dùng | Google, duyệt, mật khẩu, SSH key, khóa/xóa | 27/32 |
 | M2 Đặt lịch | Quy tắc đặt ca, múi giờ, hạn mức GPU, lịch | 41/42 |
 | M3 Scheduler | Bật/tắt, cảnh báo, reconcile | 11/15 |
-| M4 Container & SSH | Lệnh docker, SSH vào container, VS Code | 7/22 |
+| M4 Container & SSH | Lệnh docker, SSH vào container, VS Code | 8/23 |
 | M5 Lưu trữ | Quota, cảnh báo | 1/7 |
 | M6 Giám sát | Log, số liệu, audit, thông báo | 9/10 |
 | M7 Dashboard | Giao diện (e2e Playwright) | 19/19 |
-| M8 Triển khai | systemd, Nginx, tài liệu người dùng | 0/6 |
-| **Tổng** | | **115/153** |
+| M8 Triển khai | install.sh (prod/test), systemd, Nginx, vmu-doctor, tài liệu | 6/14 |
+| **Tổng** | | **122/162** |
 
-Phần chưa đạt chủ yếu là **test `system` cần máy chủ thật** (GPU, XFS quota, SSH thật, mạng Docker) và **M8 Triển khai**. Chạy thử giao diện trên máy local: `npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev.
+Phần chưa đạt là các **test `system`/`manual`**: chạy trên VPS thử nghiệm (profile `test`) hoặc máy chủ thật sau khi cài bằng `deploy/install.sh` — xem [huong-dan-trien-khai.md](huong-dan-trien-khai.md) mục 5. Test dính GPU hoặc số liệu thật (28 GiB, 80–100 GiB) chỉ tick trên máy chủ thật. Chạy thử giao diện trên máy local: `npm run db:test` rồi `npm run dev` → http://127.0.0.1:4174/__dev.

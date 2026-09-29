@@ -2,44 +2,44 @@
 
 ## Đăng nhập Google
 
-- [x] **US-T01** (REQ-US-01, REQ-US-03) · happy · integration — Email `abc@vimaru.edu.vn`, `email_verified = true`, `hd = vimaru.edu.vn` → `200`, có cookie `sid` ✅ `3e9e726`
-- [x] **US-T02** (REQ-US-03) · negative · integration — Email `@gmail.com` → `403 DOMAIN_NOT_ALLOWED` ✅ `3e9e726`
-- [x] **US-T03** (REQ-US-03) · negative · integration — Email `@sv.vimaru.edu.vn` (tên miền con) → `403 DOMAIN_NOT_ALLOWED` ✅ `3e9e726`
-- [x] **US-T04** (REQ-US-03) · edge · integration — Email `abc@vimaru.edu.vn.evil.com` → `403 DOMAIN_NOT_ALLOWED` ✅ `3e9e726`
-- [x] **US-T05** (REQ-US-02) · negative · integration — `email_verified = false` → `403 EMAIL_NOT_VERIFIED` ✅ `3e9e726`
-- [x] **US-T06** (REQ-US-01) · negative · integration — ID token sai chữ ký, sai `aud`, hết hạn (3 trường hợp) → `401 INVALID_TOKEN` ✅ `3e9e726`
-- [x] **US-T07** (REQ-US-01, REQ-US-03) · negative · integration — Token Gmail thật, không có claim `hd` (giả lập việc sửa `hd` trên URL) → `403 DOMAIN_NOT_ALLOWED` ✅ `3e9e726`
-- [x] **US-T08** (REQ-US-04) · happy · integration — Họ tên, email, ảnh đại diện lưu đúng từ token; đăng nhập lại với tên/ảnh mới → được cập nhật ✅ `3e9e726`
+- [x] **US-T01** (REQ-US-01, REQ-US-03) · happy · integration — Email `abc@vimaru.edu.vn`, `email_verified = true`, `hd = vimaru.edu.vn` → `200`, có cookie `sid` ✅ `7500103`
+- [x] **US-T02** (REQ-US-03) · negative · integration — Email `@gmail.com` → `403 DOMAIN_NOT_ALLOWED` ✅ `7500103`
+- [x] **US-T03** (REQ-US-03) · negative · integration — Email `@sv.vimaru.edu.vn` (tên miền con) → `403 DOMAIN_NOT_ALLOWED` ✅ `7500103`
+- [x] **US-T04** (REQ-US-03) · edge · integration — Email `abc@vimaru.edu.vn.evil.com` → `403 DOMAIN_NOT_ALLOWED` ✅ `7500103`
+- [x] **US-T05** (REQ-US-02) · negative · integration — `email_verified = false` → `403 EMAIL_NOT_VERIFIED` ✅ `7500103`
+- [x] **US-T06** (REQ-US-01) · negative · integration — ID token sai chữ ký, sai `aud`, hết hạn (3 trường hợp) → `401 INVALID_TOKEN` ✅ `7500103`
+- [x] **US-T07** (REQ-US-01, REQ-US-03) · negative · integration — Token Gmail thật, không có claim `hd` (giả lập việc sửa `hd` trên URL) → `403 DOMAIN_NOT_ALLOWED` ✅ `7500103`
+- [x] **US-T08** (REQ-US-04) · happy · integration — Họ tên, email, ảnh đại diện lưu đúng từ token; đăng nhập lại với tên/ảnh mới → được cập nhật ✅ `7500103`
 
 ## Tên đăng nhập & tạo tài khoản
 
-- [x] **US-T09** (REQ-US-05) · happy · unit — `VietNH@vimaru.edu.vn` → username `vietnh` ✅ `3e9e726`
-- [x] **US-T10** (REQ-US-05) · negative · integration — Username bắt đầu bằng số, chứa ký tự ngoài `a-z0-9._-`, dài > 32, trùng `root`/`docker` (4 trường hợp) → duyệt trả `400 INVALID_USERNAME`, không tạo tài khoản Linux ✅ `3e9e726`
-- [x] **US-T11** (REQ-US-06) · negative · integration — Đăng nhập lần đầu → `status = pending`; gọi `POST /bookings` → `403 ACCOUNT_PENDING` ✅ `3e9e726`
+- [x] **US-T09** (REQ-US-05) · happy · unit — `VietNH@vimaru.edu.vn` → username `vietnh` ✅ `7500103`
+- [x] **US-T10** (REQ-US-05) · negative · integration — Username bắt đầu bằng số, chứa ký tự ngoài `a-z0-9._-`, dài > 32, trùng `root`/`docker` (4 trường hợp) → duyệt trả `400 INVALID_USERNAME`, không tạo tài khoản Linux ✅ `7500103`
+- [x] **US-T11** (REQ-US-06) · negative · integration — Đăng nhập lần đầu → `status = pending`; gọi `POST /bookings` → `403 ACCOUNT_PENDING` ✅ `7500103`
 - [ ] **US-T12** (REQ-US-07, REQ-ST-01) · happy · system — Admin duyệt → có user Linux, `/data/users/<username>` thuộc UID của user mode `0700`, `xfs_quota` báo soft 80 GiB / hard 100 GiB
-- [x] **US-T14** (REQ-US-08) · negative · integration — Đã có 30 user `active`, duyệt thêm → `409 USER_LIMIT_REACHED` ✅ `3e9e726`
-- [x] **US-T15** (REQ-US-07) · edge · integration — Giả lập bước đặt quota lỗi → `500 PROVISIONING_FAILED`; không còn user Linux, thư mục, quota; user vẫn `pending` ✅ `3e9e726`
-- [x] **US-T29** (REQ-US-16) · edge · integration — Xóa một user rồi duyệt user mới → user mới nhận UID lớn hơn mọi UID đã cấp, UID của user đã xóa không bị dùng lại ✅ `3e9e726`
+- [x] **US-T14** (REQ-US-08) · negative · integration — Đã có 30 user `active`, duyệt thêm → `409 USER_LIMIT_REACHED` ✅ `7500103`
+- [x] **US-T15** (REQ-US-07) · edge · integration — Giả lập bước đặt quota lỗi → `500 PROVISIONING_FAILED`; không còn user Linux, thư mục, quota; user vẫn `pending` ✅ `7500103`
+- [x] **US-T29** (REQ-US-16) · edge · integration — Xóa một user rồi duyệt user mới → user mới nhận UID lớn hơn mọi UID đã cấp, UID của user đã xóa không bị dùng lại ✅ `7500103`
 
 ## Mật khẩu SSH
 
-- [x] **US-T16** (REQ-US-10) · happy · integration — Lần đăng nhập đầu sau khi được duyệt → `GET /me/password` trả chuỗi 16 ký tự ✅ `3e9e726`
-- [x] **US-T17** (REQ-US-10) · edge · unit — Sinh 10.000 mật khẩu → không trùng, đều dài 16, chỉ gồm bộ ký tự cho phép ✅ `3e9e726`
-- [x] **US-T18** (REQ-US-10) · happy · integration — Sau `POST /me/password/ack` → `GET /me/password` trả `404 NOT_FOUND` ✅ `3e9e726`
+- [x] **US-T16** (REQ-US-10) · happy · integration — Lần đăng nhập đầu sau khi được duyệt → `GET /me/password` trả chuỗi 16 ký tự ✅ `7500103`
+- [x] **US-T17** (REQ-US-10) · edge · unit — Sinh 10.000 mật khẩu → không trùng, đều dài 16, chỉ gồm bộ ký tự cho phép ✅ `7500103`
+- [x] **US-T18** (REQ-US-10) · happy · integration — Sau `POST /me/password/ack` → `GET /me/password` trả `404 NOT_FOUND` ✅ `7500103`
 - [ ] **US-T19** (REQ-US-10) · negative · system — Sau US-T16: tìm mật khẩu trong dump CSDL, log backend, log Nginx → không thấy
-- [x] **US-T20** (REQ-US-10) · happy · integration — Response `GET /me/password` và `POST /me/password/reset` có `Cache-Control: no-store` ✅ `3e9e726`
+- [x] **US-T20** (REQ-US-10) · happy · integration — Response `GET /me/password` và `POST /me/password/reset` có `Cache-Control: no-store` ✅ `7500103`
 - [ ] **US-T21** (REQ-US-11) · happy · system — SSH bằng mật khẩu vừa cấp → đăng nhập được và bị yêu cầu đổi mật khẩu ngay
 - [ ] **US-T22** (REQ-US-12) · happy · system — Cấp lại mật khẩu → SSH bằng mật khẩu cũ thất bại; mật khẩu mới hiển thị một lần và phải đổi khi SSH
 - [ ] **US-T23** (REQ-US-13) · happy · system — Thêm SSH key qua API → SSH bằng key thành công; xóa key → thất bại
-- [x] **US-T28** (REQ-US-13) · negative · integration — Thêm key `"not-a-key"` → `400 INVALID_SSH_KEY` ✅ `3e9e726`
+- [x] **US-T28** (REQ-US-13) · negative · integration — Thêm key `"not-a-key"` → `400 INVALID_SSH_KEY` ✅ `7500103`
 
 ## Phân quyền
 
-- [x] **US-T24** (REQ-US-14) · negative · integration — User thường gọi `GET /admin/users` → `403 FORBIDDEN` ✅ `3e9e726`
-- [x] **US-T25** (REQ-US-15) · happy · integration — Admin khóa user có 1 ca `scheduled` và 1 ca `running` → đăng nhập trả `403 ACCOUNT_LOCKED`, ca `scheduled` thành `cancelled`, ca `running` chuyển `stopping` rồi `completed` ✅ `3e9e726`
-- [x] **US-T26** (REQ-US-16) · happy · integration — Xóa user → dữ liệu còn nguyên, `purge_after = now + 30 ngày`; chạy cron purge với thời gian giả lập +31 ngày → dữ liệu bị xóa ✅ `3e9e726`
-- [x] **US-T27** (REQ-US-14) · negative · integration — Gọi `GET /me` không có cookie → `401 UNAUTHENTICATED` ✅ `3e9e726`
-- [x] **US-T30** (REQ-US-14) · happy · integration — Admin gọi `GET /admin/users` → `200` ✅ `3e9e726`
-- [x] **US-T32** (REQ-US-17) · negative · integration — Admin từ chối tài khoản `pending` → `rejected`, không tạo user Linux; tài khoản đó đăng nhập → `403 ACCOUNT_REJECTED`; từ chối tài khoản `active` → `409 INVALID_STATE`; duyệt lại tài khoản `rejected` → `200`, `active` ✅ `3e9e726`
-- [x] **US-T33** (REQ-US-18) · happy · integration — Admin cấp lại mật khẩu SSH cho user `active` → `200`, response không chứa mật khẩu; mật khẩu Linux đổi và phải đổi khi SSH; user mở `GET /me/password` → thấy đúng mật khẩu mới; cấp lại cho user `pending` → `409 INVALID_STATE`; user thường gọi → `403 FORBIDDEN` ✅ `3e9e726`
-- [x] **US-T34** (REQ-US-13) · edge · integration — Thêm key kèm `name` → danh sách trả đúng tên; không có `name` → lấy chú thích cuối key, không có chú thích → lấy loại key; `name` dài 61 ký tự → `400 VALIDATION_ERROR` ✅ `3e9e726`
+- [x] **US-T24** (REQ-US-14) · negative · integration — User thường gọi `GET /admin/users` → `403 FORBIDDEN` ✅ `7500103`
+- [x] **US-T25** (REQ-US-15) · happy · integration — Admin khóa user có 1 ca `scheduled` và 1 ca `running` → đăng nhập trả `403 ACCOUNT_LOCKED`, ca `scheduled` thành `cancelled`, ca `running` chuyển `stopping` rồi `completed` ✅ `7500103`
+- [x] **US-T26** (REQ-US-16) · happy · integration — Xóa user → dữ liệu còn nguyên, `purge_after = now + 30 ngày`; chạy cron purge với thời gian giả lập +31 ngày → dữ liệu bị xóa ✅ `7500103`
+- [x] **US-T27** (REQ-US-14) · negative · integration — Gọi `GET /me` không có cookie → `401 UNAUTHENTICATED` ✅ `7500103`
+- [x] **US-T30** (REQ-US-14) · happy · integration — Admin gọi `GET /admin/users` → `200` ✅ `7500103`
+- [x] **US-T32** (REQ-US-17) · negative · integration — Admin từ chối tài khoản `pending` → `rejected`, không tạo user Linux; tài khoản đó đăng nhập → `403 ACCOUNT_REJECTED`; từ chối tài khoản `active` → `409 INVALID_STATE`; duyệt lại tài khoản `rejected` → `200`, `active` ✅ `7500103`
+- [x] **US-T33** (REQ-US-18) · happy · integration — Admin cấp lại mật khẩu SSH cho user `active` → `200`, response không chứa mật khẩu; mật khẩu Linux đổi và phải đổi khi SSH; user mở `GET /me/password` → thấy đúng mật khẩu mới; cấp lại cho user `pending` → `409 INVALID_STATE`; user thường gọi → `403 FORBIDDEN` ✅ `7500103`
+- [x] **US-T34** (REQ-US-13) · edge · integration — Thêm key kèm `name` → danh sách trả đúng tên; không có `name` → lấy chú thích cuối key, không có chú thích → lấy loại key; `name` dài 61 ký tự → `400 VALIDATION_ERROR` ✅ `7500103`

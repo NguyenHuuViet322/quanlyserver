@@ -2,7 +2,7 @@
 
 > Tự sinh bởi `node tools/trace.js --write`. **Không sửa tay.** Chạy lại sau mỗi lần merge.
 
-- REQ: **83** · Test case: **162** · Đã tick: **115/162**
+- REQ: **83** · Test case: **162** · Đã tick: **122/162**
 - Gate Bước 2–3: ✅ đạt
 
 | REQ | Mô tả | Mục Docs | Test case | Có test tự động | File code | Trạng thái |
@@ -15,7 +15,7 @@
 | REQ-US-06 | Tài khoản chờ duyệt | api.md | US-T11 ✅ | 1/1 | backend/src/app.js, backend/src/users/service.js | ✅ Xong |
 | REQ-US-07 | Cấp phát khi duyệt | api.md, storage.md | US-T12, US-T15 ✅ | 2/2 | backend/src/system/linux.js, frontend/src/views/admin.js | Đang làm (1/2) |
 | REQ-US-08 | Giới hạn số tài khoản | api.md | US-T14 ✅ | 1/1 | — | ✅ Xong |
-| REQ-US-10 | Mật khẩu SSH ban đầu | api.md, database.md, deployment.md | DP-T11, US-T16 ✅, US-T17 ✅, US-T18 ✅, US-T19, US-T20 ✅ | 5/6 | backend/src/app.js, backend/src/users/password.js, backend/src/users/service.js, frontend/src/app.js | Đang làm (4/6) |
+| REQ-US-10 | Mật khẩu SSH ban đầu | api.md, database.md, deployment.md | DP-T11 ✅, US-T16 ✅, US-T17 ✅, US-T18 ✅, US-T19, US-T20 ✅ | 5/6 | backend/src/app.js, backend/src/users/password.js, backend/src/users/service.js, frontend/src/app.js | Đang làm (5/6) |
 | REQ-US-11 | Bắt đổi mật khẩu lần đầu | api.md, ssh.md | US-T21 | 0/1 | backend/src/users/service.js, frontend/src/views/account.js | Đang làm (0/1) |
 | REQ-US-12 | Cấp lại mật khẩu | api.md, dashboard.md | US-T22 | 0/1 | backend/src/users/service.js | Đang làm (0/1) |
 | REQ-US-13 | SSH key | api.md, dashboard.md, database.md, ssh.md | US-T23, US-T28 ✅, US-T34 ✅ | 2/3 | backend/src/users/service.js, backend/src/users/ssh-key.js | Đang làm (2/3) |
@@ -47,7 +47,7 @@
 | REQ-SC-07 | Container tự thoát | api.md, container.md, scheduler.md | SC-T09 ✅, SC-T10 ✅, SC-T11 ✅ | 3/3 | backend/src/booking/service.js, backend/src/scheduler/tick.js | ✅ Xong |
 | REQ-SC-08 | Đồng hồ của Scheduler | container.md, scheduler.md, time.md | SC-T13 ✅, SC-T14 | 2/2 | backend/src/container/run-args.js, backend/src/scheduler/tick.js | Đang làm (1/2) |
 | REQ-CT-01 | GPU | container.md | CT-T01, CT-T02 | 0/2 | backend/src/container/run-args.js | Đang làm (0/2) |
-| REQ-CT-02 | Tài nguyên | container.md | CT-T03, CT-T04, CT-T05 ✅, CT-T24, DP-T03 | 2/5 | backend/src/container/run-args.js | Đang làm (1/5) |
+| REQ-CT-02 | Tài nguyên | container.md | CT-T03, CT-T04, CT-T05 ✅, CT-T24 ✅, DP-T03 | 2/5 | backend/src/container/run-args.js | Đang làm (2/5) |
 | REQ-CT-03 | Cách ly dữ liệu | container.md | CT-T06, CT-T07 | 0/2 | backend/src/container/run-args.js | Đang làm (0/2) |
 | REQ-CT-04 | Bảo mật | container.md | CT-T08, CT-T09 ✅ | 1/2 | backend/src/container/run-args.js | Đang làm (1/2) |
 | REQ-CT-05 | Mạng | container.md, deployment.md, ssh.md | CT-T10 ✅, CT-T19 | 1/2 | backend/src/config.js, backend/src/container/run-args.js | Đang làm (1/2) |
@@ -81,12 +81,12 @@
 | REQ-UI-16 | Thẻ dung lượng (trang Tài khoản & Key): thanh màu chủ đạo… | dashboard.md | UI-T18 ✅ | 1/1 | frontend/src/views/account.js | ✅ Xong |
 | REQ-UI-17 | Nhãn trạng thái ca luôn có chữ và màu: `scheduled` "Sắp t… | dashboard.md | UI-T19 ✅ | 1/1 | frontend/src/ui.js | ✅ Xong |
 | REQ-UI-10 | Dashboard MUST hiển thị và nhận giờ theo giờ Việt Nam, kè… | dashboard.md, time.md | UI-T10 ✅, UI-T11 ✅ | 2/2 | frontend/src/time.js | ✅ Xong |
-| REQ-DP-01 | Backend và Scheduler MUST chạy dưới systemd, tự khởi động… | deployment.md | DP-T01, DP-T11 | 1/2 | — | Chưa code (0/2) |
-| REQ-DP-02 | Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hư… | api.md, deployment.md | DP-T02, DP-T11 | 1/2 | — | Chưa code (0/2) |
-| REQ-DP-03 | Tổng giới hạn RAM của các container MUST ≤ RAM host − `HO… | deployment.md | DP-T03, DP-T09 | 1/2 | backend/src/config.js, backend/src/scheduler/main.js | Đang làm (0/2) |
-| REQ-DP-04 | Phiên bản cũ của image không dùng quá `IMAGE_RETENTION` M… | deployment.md | DP-T04, DP-T10 | 1/2 | backend/src/cli.js, backend/src/container/docker.js, backend/src/container/images.js | Đang làm (0/2) |
+| REQ-DP-01 | Backend và Scheduler MUST chạy dưới systemd, tự khởi động… | deployment.md | DP-T01, DP-T11 ✅ | 1/2 | — | Chưa code (0/2) |
+| REQ-DP-02 | Dashboard/API MUST chỉ truy cập qua HTTPS; HTTP chuyển hư… | api.md, deployment.md | DP-T02, DP-T11 ✅ | 1/2 | — | Chưa code (0/2) |
+| REQ-DP-03 | Tổng giới hạn RAM của các container MUST ≤ RAM host − `HO… | deployment.md | DP-T03, DP-T09 ✅ | 1/2 | backend/src/config.js, backend/src/scheduler/main.js | Đang làm (1/2) |
+| REQ-DP-04 | Phiên bản cũ của image không dùng quá `IMAGE_RETENTION` M… | deployment.md | DP-T04, DP-T10 ✅ | 1/2 | backend/src/cli.js, backend/src/container/docker.js, backend/src/container/images.js | Đang làm (1/2) |
 | REQ-DP-05 | MUST có tài liệu người dùng: đăng ký, SSH, lưu dữ liệu, t… | deployment.md, storage.md | DP-T05 | 1/1 | — | Chưa code (0/1) |
-| REQ-DP-06 | Đồng hồ server MUST được đồng bộ NTP (chrony hoặc systemd… | container.md, database.md, deployment.md, scheduler.md, time.md | DP-T06, DP-T11 | 1/2 | backend/src/db/index.js | Đang làm (0/2) |
-| REQ-DP-07 | Các tham số ⚙ của bảng cấu hình MUST đọc từ biến môi trườ… | deployment.md | CT-T24, DP-T07, DP-T08 | 3/3 | backend/src/config.js, backend/src/scheduler/main.js, backend/src/server.js | Đang làm (0/3) |
-| REQ-DP-08 | MUST có script cài đặt `deploy/install.sh` cho Ubuntu 24.… | deployment.md | DP-T12, DP-T13 | 1/2 | — | Chưa code (0/2) |
+| REQ-DP-06 | Đồng hồ server MUST được đồng bộ NTP (chrony hoặc systemd… | container.md, database.md, deployment.md, scheduler.md, time.md | DP-T06, DP-T11 ✅ | 1/2 | backend/src/db/index.js | Đang làm (1/2) |
+| REQ-DP-07 | Các tham số ⚙ của bảng cấu hình MUST đọc từ biến môi trườ… | deployment.md | CT-T24 ✅, DP-T07 ✅, DP-T08 ✅ | 3/3 | backend/src/config.js, backend/src/scheduler/main.js, backend/src/server.js | ✅ Xong |
+| REQ-DP-08 | MUST có script cài đặt `deploy/install.sh` cho Ubuntu 24.… | deployment.md | DP-T12 ✅, DP-T13 | 1/2 | — | Chưa code (0/2) |
 | REQ-DP-09 | Lệnh `vmu-doctor` MUST kiểm tra và in `OK`/`FAIL` cho từn… | deployment.md | DP-T13, DP-T14 | 0/2 | — | Chưa code (0/2) |
